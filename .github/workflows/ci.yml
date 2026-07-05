@@ -1,0 +1,236 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+env:
+  NODE_VERSION_FILE: '.nvmrc'
+
+jobs:
+  # ─── API: lint + test + build ──────────────────────────────────────────────
+  api:
+    name: API (NestJS)
+    runs-on: ubuntu-latest
+
+    services:
+      redis:
+        image: redis:7-alpine
+        ports: ['6379:6379']
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: 'mongodb://localhost:27017/taskeasy_test?directConnection=true'
+      REDIS_HOST: localhost
+      REDIS_PORT: 6379
+      JWT_SECRET: ci-jwt-secret
+      JWT_REFRESH_SECRET: ci-refresh-secret
+      JWT_EXPIRES_IN: 15m
+      JWT_REFRESH_EXPIRES_IN: 7d
+      NODE_ENV: test
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Start MongoDB
+        uses: supercharge/mongodb-github-action@1.10.0
+        with:
+          mongodb-version: '7.0'
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: ${{ env.NODE_VERSION_FILE }}
+          cache: npm
+          cache-dependency-path: apps/api/package-lock.json
+
+      - name: Install dependencies
+        working-directory: apps/api
+        run: npm ci
+
+      - name: Generate Prisma client
+        working-directory: apps/api
+        run: npx prisma generate
+
+      - name: Lint
+        working-directory: apps/api
+        run: npm run lint
+
+      - name: Build
+        working-directory: apps/api
+        run: npm run build
+
+      - name: Unit tests
+        working-directory: apps/api
+        run: npm test -- --passWithNoTests
+
+  # ─── Web: lint + type-check + unit tests + build ──────────────────────────
+  web:
+    name: Web (Next.js)
+    runs-on: ubuntu-latest
+
+    env:
+      NEXT_PUBLIC_API_URL: http://localhost:4000/api
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: ${{ env.NODE_VERSION_FILE }}
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
+
+      - name: Install dependencies
+        working-directory: apps/web
+        run: npm ci
+
+      - name: Type check
+        working-directory: apps/web
+        run: npx tsc --noEmit
+
+      - name: Lint
+        working-directory: apps/web
+        run: npx next lint --max-warnings 0
+
+      - name: Unit tests
+        working-directory: apps/web
+        run: npm test -- --passWithNoTests --coverage
+
+      - name: Build
+        working-directory: apps/web
+        run: npm run build
+
+      - name: Upload coverage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-coverage
+          path: apps/web/coverage/
+          retention-days: 7
+
+  # ─── Docker build smoke test ───────────────────────────────────────────────
+  docker:
+    name: Docker build
+    runs-on: ubuntu-latest
+    needs: [api, web]
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build API image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./apps/api
+          push: false
+          tags: taskeasy-api:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build Web image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./apps/web
+          push: false
+          tags: taskeasy-web:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ─── E2E (runs on main and PRs, needs full stack) ──────────────────────────
+  e2e:
+    name: E2E (Playwright)
+    runs-on: ubuntu-latest
+    needs: [api, web]
+
+    services:
+      redis:
+        image: redis:7-alpine
+        ports: ['6379:6379']
+
+    env:
+      DATABASE_URL: 'mongodb://localhost:27017/taskeasy_e2e?directConnection=true'
+      REDIS_HOST: localhost
+      REDIS_PORT: 6379
+      JWT_SECRET: ci-jwt-secret
+      JWT_REFRESH_SECRET: ci-refresh-secret
+      JWT_EXPIRES_IN: 15m
+      JWT_REFRESH_EXPIRES_IN: 7d
+      NODE_ENV: test
+      PORT: 4000
+      NEXT_PUBLIC_API_URL: http://localhost:4000/api
+      PLAYWRIGHT_BASE_URL: http://localhost:3000
+      E2E_ADMIN_EMAIL: superadmin@taskeasy.app
+      E2E_ADMIN_PASSWORD: Admin@1234
+      E2E_EMPLOYEE_EMAIL: employee@taskeasy.app
+      E2E_EMPLOYEE_PASSWORD: Employee@1234
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Start MongoDB
+        uses: supercharge/mongodb-github-action@1.10.0
+        with:
+          mongodb-version: '7.0'
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: ${{ env.NODE_VERSION_FILE }}
+
+      - name: Install & seed API
+        working-directory: apps/api
+        run: |
+          npm ci
+          npx prisma generate
+          npx prisma db push --force-reset
+          npm run db:seed
+
+      - name: Start API
+        working-directory: apps/api
+        run: npm run start:prod &
+        env:
+          SEED_SUPER_ADMIN_EMAIL: superadmin@taskeasy.app
+          SEED_SUPER_ADMIN_PASSWORD: Admin@1234
+          SEED_EMPLOYEE_EMAIL: employee@taskeasy.app
+          SEED_EMPLOYEE_PASSWORD: Employee@1234
+
+      - name: Install & build web
+        working-directory: apps/web
+        run: |
+          npm ci
+          npm run build
+
+      - name: Start web
+        working-directory: apps/web
+        run: npm start &
+
+      - name: Wait for services
+        run: |
+          npx wait-on http://localhost:4000/health http://localhost:3000 --timeout 60000
+
+      - name: Install Playwright browsers
+        working-directory: apps/web
+        run: npx playwright install --with-deps chromium
+
+      - name: Run E2E tests
+        working-directory: apps/web
+        run: npx playwright test
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: apps/web/playwright-report/
+          retention-days: 7

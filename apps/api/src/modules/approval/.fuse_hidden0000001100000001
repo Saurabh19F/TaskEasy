@@ -1,0 +1,179 @@
+import { Injectable } from '@nestjs/common';
+import { PrismaService } from '../../prisma/prisma.service';
+import { HierarchyService } from '../hierarchy/hierarchy.service';
+
+export interface ApprovalItem {
+  id: string;
+  type: 'DELEGATION' | 'WORK_REQUEST';
+  taskId?: string;
+  title: string;
+  submittedBy: { id: string; name: string };
+  submittedAt: Date | null;
+  doerRemarks: string | null;
+  doerAttachmentIds: string[];
+  targetDate: Date;
+  reworkCount: number;
+  priority?: string;
+  projectName?: string;
+}
+
+@Injectable()
+export class ApprovalService {
+  constructor(
+    private prisma: PrismaService,
+    private hierarchy: HierarchyService,
+  ) {}
+
+  /**
+   * Returns combined approval queue: Delegation + Work Request items
+   * filtered by visible team.
+   *
+   * tab='new'    => items with status SEND_FOR_APPROVAL (awaiting review)
+   * tab='rework' => items with status REWORK (sent back, awaiting resubmission)
+   *
+   * Previously 'tab' was accepted as a parameter but completely ignored --
+   * both tabs always queried SEND_FOR_APPROVAL, so the "Rework Submissions"
+   * tab always showed an empty list. Fixed: the status filter is now driven by 'tab'.
+   */
+  async getApprovalQueue(tenantId: string, userId: string, role: string, tab: 'new' | 'rework' = 'new') {
+    const visibleIds = await this.hierarchy.getVisibleUserIds(userId, role, tenantId);
+    const isAdmin = ['SUPER_ADMIN', 'ADMIN', 'MANAGER'].includes(role);
+
+    const statusFilter = tab === 'rework' ? 'REWORK' : 'SEND_FOR_APPROVAL';
+
+    const delegationWhere: any = { tenantId, status: statusFilter };
+    if (visibleIds) delegationWhere.delegatedToId = { in: visibleIds };
+
+    const wrWhere: any = { tenantId, status: statusFilter };
+    if (isAdmin && visibleIds) {
+      wrWhere.OR = [
+        { requestedById: userId },
+        { requestedForId: { in: visibleIds } },
+      ];
+    } else {
+      wrWhere.requestedById = userId;
+    }
+
+    const [delegations, workRequests] = await Promise.all([
+      this.prisma.delegationTask.findMany({
+        where: delegationWhere,
+        include: {
+          delegatedTo: { select: { id: true, name: true } },
+          project: { select: { name: true } },
+        },
+        orderBy: { submittedAt: 'asc' },
+      }),
+      this.prisma.workRequest.findMany({
+        where: wrWhere,
+        include: {
+          requestFor: { select: { id: true, name: true } },
+          project: { select: { name: true } },
+        },
+        orderBy: { submittedAt: 'asc' },
+      }),
+    ]);
+
+    const items: ApprovalItem[] = [
+      ...delegations.map((d) => ({
+        id: d.id,
+        type: 'DELEGATION' as const,
+        taskId: d.taskId,
+        title: d.title,
+        submittedBy: d.delegatedTo,
+        submittedAt: d.submittedAt,
+        doerRemarks: d.doerRemarks,
+        doerAttachmentIds: d.doerAttachmentIds,
+        targetDate: d.targetDate,
+        reworkCount: d.reworkCount,
+        priority: d.priority,
+        projectName: d.project?.name,
+      })),
+      ...workRequests.map((w) => ({
+        id: w.id,
+        type: 'WORK_REQUEST' as const,
+        taskId: w.requestId,
+        title: w.title,
+        submittedBy: w.requestFor,
+        submittedAt: w.submittedAt,
+        doerRemarks: w.doerRemarks,
+        doerAttachmentIds: w.doerAttachmentIds,
+        targetDate: w.deadlineDate,
+        reworkCount: w.reworkCount,
+        projectName: w.project?.name,
+      })),
+    ];
+
+    items.sort((a, b) => {
+      if (!a.submittedAt) return 1;
+      if (!b.submittedAt) return -1;
+      return a.submittedAt.getTime() - b.submittedAt.getTime();
+    });
+
+    return { data: items, total: items.length };
+  }
+
+  /**
+   * BUG-06 fix: getReworkHistory() was a duplicate of getApprovalQueue(tab='rework')
+   * that returned data in a different shape, causing the "Rework Submissions" tab
+   * to be backed by inconsistent logic depending on which endpoint the controller called.
+   *
+   * @deprecated Use getApprovalQueue(tenantId, userId, role, 'rework') instead.
+   * This stub is kept so existing callers don't crash while the controller is
+   * updated to call getApprovalQueue directly.
+   */
+  async getReworkHistory(tenantId: string, userId: string, role: string) {
+    const result = await this.getApprovalQueue(tenantId, userId, role, 'rework');
+    return {
+      delegations: result.data.filter((i) => i.type === 'DELEGATION'),
+      workRequests: result.data.filter((i) => i.type === 'WORK_REQUEST'),
+      total: result.total,
+    };
+  }
+
+  async getPendingApprovalCount(tenantId: string, userId: string, role: string): Promise<number> {
+    const visibleIds = await this.hierarchy.getVisibleUserIds(userId, role, tenantId);
+    const isAdmin = ['SUPER_ADMIN', 'ADMIN', 'MANAGER'].includes(role);
+
+    const wrWhere: any = { tenantId, status: 'SEND_FOR_APPROVAL' };
+    if (isAdmin && visibleIds) {
+      wrWhere.OR = [
+        { requestedById: userId },
+        { requestedForId: { in: visibleIds } },
+      ];
+    } else {
+      wrWhere.requestedById = userId;
+    }
+
+    const [delegationCount, wrCount] = await Promise.all([
+      this.prisma.delegationTask.count({
+        where: {
+          tenantId,
+          status: 'SEND_FOR_APPROVAL',
+          ...(visibleIds ? { delegatedToId: { in: visibleIds } } : {}),
+        },
+      }),
+      this.prisma.workRequest.count({ where: wrWhere }),
+    ]);
+
+    return delegationCount + wrCount;
+  }
+
+  async getMySubmissions(tenantId: string, userId: string) {
+    const [delegations, workRequests] = await Promise.all([
+      this.prisma.delegationTask.findMany({
+        where: { tenantId, delegatedToId: userId },
+        orderBy: { updatedAt: 'desc' },
+        take: 50,
+        include: { project: { select: { name: true } } },
+      }),
+      this.prisma.workRequest.findMany({
+        where: { tenantId, requestedForId: userId },
+        orderBy: { updatedAt: 'desc' },
+        take: 50,
+        include: { project: { select: { name: true } } },
+      }),
+    ]);
+
+    return { delegations, workRequests };
+  }
+}

@@ -1,0 +1,1524 @@
+// TaskEasy — Complete Prisma Schema for MongoDB
+// ORM: Prisma | Database: MongoDB Atlas
+// Multi-tenant SaaS Workflow Management Platform
+//
+// ⚠ CASCADE CAVEAT (MongoDB):
+// Prisma emulates `onDelete: Cascade` in the application layer only.
+// Raw Mongo operations, Atlas Data Explorer deletes, and external tools
+// will NOT cascade — orphaned child documents will remain. For safety:
+//   1. Always delete via Prisma's typed API (service methods), never raw.
+//   2. Consider soft-delete (deletedAt field) for User/Project/Tenant.
+//   3. Run a periodic orphan-detection script in production.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================
+// ENUMS
+// ============================================================
+
+enum UserRole {
+  SAAS_OWNER
+  COMPANY_OWNER
+  ADMIN
+  MANAGER
+  TEAM_LEAD
+  EMPLOYEE
+  AUDITOR
+  VIEWER
+  CLIENT
+  VENDOR
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  LOCKED
+  PENDING_VERIFICATION
+}
+
+enum PlanTier {
+  STARTER
+  PRO
+  ENTERPRISE
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  TRIAL
+  EXPIRED
+  CANCELLED
+  SUSPENDED
+}
+
+enum ProjectStatus {
+  NOT_STARTED
+  ACTIVE
+  ON_HOLD
+  COMPLETED
+  ARCHIVED
+}
+
+enum TaskStatus {
+  PENDING
+  IN_PROGRESS
+  SEND_FOR_APPROVAL
+  REWORK
+  COMPLETED
+  BLOCKED
+  CANCELLED
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+  CRITICAL
+}
+
+enum OnTimeStatus {
+  ON_TIME
+  LATE
+}
+
+enum RiskLevel {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum ChecklistFrequency {
+  DAILY
+  WEEKLY
+  FORTNIGHTLY
+  MONTHLY
+  QUARTERLY
+  HALF_YEARLY
+  YEARLY
+  ONE_TIME
+}
+
+enum FmsTaskStatus {
+  NOT_STARTED
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  LATE
+  BLOCKED
+  SKIPPED
+}
+
+enum NotificationType {
+  TASK_ASSIGNED
+  TASK_DUE_SOON
+  TASK_OVERDUE
+  TASK_COMPLETED
+  TASK_APPROVED
+  APPROVAL_PENDING
+  REWORK_REQUESTED
+  REWORK_RESUBMITTED
+  COMMENT_MENTION
+  FMS_STEP_ASSIGNED
+  MIS_SCORE_UPDATED
+  SLA_BREACHED
+  CHECKLIST_MISSED
+  CHECKLIST_ASSIGNED
+  CHECKLIST_APPROVAL_STALE
+  WORK_REQUEST_ASSIGNED
+  WORKFLOW_PUBLISHED
+  USER_ADDED
+  PROJECT_UPDATED
+  PUNCH_IN_MISSED
+  TASK_REASSIGNED_TO_BUDDY
+}
+
+enum NotificationChannel {
+  IN_APP
+  EMAIL
+  WHATSAPP
+  PUSH
+}
+
+enum ApprovalStatus {
+  PENDING
+  APPROVED
+  REWORK
+  REJECTED
+}
+
+enum ApprovalType {
+  SINGLE
+  MULTI_LEVEL
+  PARALLEL
+  CONDITIONAL
+}
+
+enum AuditAction {
+  LOGIN
+  LOGOUT
+  CREATE
+  UPDATE
+  DELETE
+  APPROVE
+  REWORK
+  REJECT
+  UPLOAD
+  EXPORT
+  IMPORT
+  ROLE_CHANGE
+  STATUS_CHANGE
+  FORCE_COMPLETE
+  ASSIGN
+  REASSIGN
+}
+
+enum AuditModule {
+  AUTH
+  USERS
+  PROJECTS
+  HIERARCHY
+  DELEGATION
+  WORK_REQUEST
+  CHECKLIST
+  FMS
+  WORKFLOW
+  APPROVAL
+  MIS
+  REPORTS
+  AUTOMATION
+  SETTINGS
+  BILLING
+  AUDIT
+}
+
+enum AutomationTrigger {
+  TASK_OVERDUE
+  TASK_COMPLETED
+  TASK_CREATED
+  REWORK_REQUESTED
+  CHECKLIST_MISSED
+  FMS_STEP_COMPLETED
+  SLA_BREACHED
+  USER_WORKLOAD_HIGH
+  PROJECT_HEALTH_LOW
+  APPROVAL_PENDING_TOO_LONG
+}
+
+enum AutomationAction {
+  NOTIFY_USER
+  NOTIFY_MANAGER
+  NOTIFY_ADMIN
+  CREATE_TASK
+  CHANGE_STATUS
+  ESCALATE
+  MARK_CRITICAL
+  ASSIGN_TO
+  SEND_EMAIL
+  ADD_COMMENT
+}
+
+enum FormFieldType {
+  TEXT
+  NUMBER
+  DATE
+  TIME
+  DATETIME
+  DROPDOWN
+  MULTI_SELECT
+  FILE_UPLOAD
+  CHECKBOX
+  RADIO
+  TABLE
+  SIGNATURE
+  URL
+  CURRENCY
+  TEXTAREA
+}
+
+enum MisGrade {
+  A_PLUS
+  A
+  B
+  C
+  D
+  N_A
+}
+
+enum WorkflowStatus {
+  DRAFT
+  PUBLISHED
+  PAUSED
+  ARCHIVED
+  COMPLETED  // All FMS execution steps are done — distinct from PUBLISHED (template is live)
+}
+
+// ============================================================
+// TENANT & SUBSCRIPTION
+// ============================================================
+
+model Tenant {
+  id                    String    @id @default(auto()) @map("_id") @db.ObjectId
+  name                  String
+  slug                  String    @unique // used in URLs: taskeasy.app/company-slug
+  domain                String? // custom domain
+  logoUrl               String?
+  primaryColor          String?
+  industry              String?
+  ownerName             String?
+  ownerEmail            String?
+  ownerPhone            String?
+  timezone              String    @default("Asia/Kolkata")
+  dateFormat            String    @default("DD/MM/YYYY")
+  officeShiftName       String?
+  workingWeekType       String?
+  workingDays           Int[]     @default([1, 2, 3, 4, 5, 6]) // 1=Mon, 7=Sun
+  workingHoursStart     String    @default("09:00")
+  workingHoursEnd       String    @default("18:00")
+  weeklyOffDays         Int[]     @default([7])
+  alternateSaturdayOff  Boolean   @default(false)
+  saturdayPolicy        String?
+  punchInStartTime      String?
+  punchInEndTime        String?
+  totalWorkingHours     Float?
+  defaultSlaHours       Int       @default(24)
+  status                String    @default("TRIAL")
+  trialEndsAt           DateTime?
+  subscriptionStartDate DateTime?
+  subscriptionEndDate   DateTime?
+  lastLoginAt           DateTime?
+  storageUsedBytes      Int?
+  apiUsageCount         Int?
+  lastActivityAt        DateTime?
+  dbUri                 String?
+  dbName                String?
+  isActive              Boolean   @default(true)
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  // Relations
+  subscription     Subscription?
+  users            User[]
+  projects         Project[]
+  hierarchies      Hierarchy[]
+  delegations      DelegationTask[]
+  workRequests     WorkRequest[]
+  checklistMasters ChecklistMaster[]
+  checklistTasks   ChecklistTask[]
+  fmsWorkflows     FmsWorkflow[]
+  fmsTasks         FmsTask[]
+  approvals           Approval[]
+  notifications       Notification[]
+  auditLogs           AuditLog[]
+  misSnapshots        MisSnapshot[]
+  automationRules     AutomationRule[]
+  holidays            HolidayCalendar[]
+  featureFlags        TenantFeatureFlag[]
+  integrationAccounts IntegrationAccount[]
+  externalSyncs       ExternalSync[]
+  forms               Form[]
+  clientUsers         ClientUser[]
+  vendorUsers         VendorUser[]
+  templates           Template[]
+  attachments         Attachment[]
+  bulkImportBatches   BulkImportBatch[]
+
+  @@map("tenants")
+}
+
+model Plan {
+  id               String   @id @default(auto()) @map("_id") @db.ObjectId
+  name             String
+  tier             PlanTier
+  price            Float
+  monthlyPrice     Float?
+  yearlyPrice      Float?
+  currency         String   @default("INR")
+  description      String?
+  maxUsers         Int
+  maxProjects      Int
+  maxFmsWorkflows  Int
+  maxEmployees     Int?
+  maxTasks         Int?
+  storageLimitGb   Int?
+  attendanceAccess Boolean  @default(true)
+  leaveAccess      Boolean  @default(true)
+  payrollAccess    Boolean  @default(false)
+  reportsAccess    Boolean  @default(true)
+  aiAccess         Boolean  @default(false)
+  supportLevel     String?
+  status           String   @default("ACTIVE")
+  features         String[] // feature flag keys included
+  isActive         Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  subscriptions Subscription[]
+
+  @@map("plans")
+}
+
+model Subscription {
+  id                 String             @id @default(auto()) @map("_id") @db.ObjectId
+  tenantId           String             @unique @db.ObjectId
+  planId             String             @db.ObjectId
+  status             SubscriptionStatus @default(TRIAL)
+  trialEndsAt        DateTime?
+  graceEndsAt        DateTime?
+  currentPeriodStart DateTime
+  currentPeriodEnd   DateTime
+  billingCycle       String?
+  autoRenew          Boolean            @default(true)
+  planSnapshot       Json?
+  cancelledAt        DateTime?
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+  plan   Plan   @relation(fields: [planId], references: [id])
+
+  @@map("subscriptions")
+}
+
+model TenantFeatureFlag {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  tenantId  String   @db.ObjectId
+  feature   String // e.g. "ai_assistant", "client_portal", "vendor_portal"
+  enabled   Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  @@unique([tenantId, feature])
+  @@map("tenantFeatureFlags")
+}
+
+model Sequence {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  key       String   @unique
+  value     Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("Sequence")
+}
+
+model HolidayCalendar {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  tenantId  String   @db.ObjectId
+  date      DateTime
+  name      String
+  year      Int
+  createdAt DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  @@index([tenantId, date])
+  @@map("holidayCalendars")
+}
+
+// ============================================================
+// USERS & AUTH
+// ============================================================
+
+model User {
+  id                  String     @id @default(auto()) @map("_id") @db.ObjectId
+  tenantId            String     @db.ObjectId
+  employeeId          String? // custom employee ID (e.g. EMP001)
+  name                String
+  email               String
+  phone               String?
+  passwordHash        String
+  avatarUrl           String?
+  gender              String?
+  dateOfBirth         DateTime?
+  role                UserRole   @default(EMPLOYEE)
+  status              UserStatus @default(ACTIVE)
+  department          String?
+  designation         String?
+  address             String?
+  city                String?
+  state               String?
+  country             String?
+  pinCode             String?
+  joiningDate         DateTime?
+  employmentType      String?
+  workMode            String?
+  workLocation        String?
+  employeeStatus      String?
+  managerId           String?    @db.ObjectId
+  // Expected daily punch-in/login time, "HH:mm". Required (enforced in the
+  // DTO) for MANAGER/EMPLOYEE/VIEWER — drives the attendance sweep that
+  // alerts the admin and hands off work to `buddy` if this user hasn't
+  // logged in within 15 minutes of this time.
+  punchInTime         String?
+  buddyId             String?    @db.ObjectId
+  officeDays          String[]   @default(["MON", "TUE", "WED", "THU", "FRI"])
+  weeklyOff           String[]   @default(["SUN"])
+  roleIds             String[]   @db.ObjectId // custom roles
+  permissions         String[] // direct permission overrides
+  failedLoginAttempts Int        @default(0)
+  lockedUntil         DateTime?
+  lastLoginAt         DateTime?
+  emailVerified       Boolean    @default(false)
+  twoFactorEnabled    Boolean    @default(false)
+  twoFactorSecret     String?
+  createdAt           DateTime   @default(now())
+  updatedAt           DateTime   @updatedAt
+  createdBy           String?    @db.ObjectId
+
+  tenant               Tenant                @relation(fields: [tenantId], references: [id])
+  manager              User?                 @relation("ManagerEmployee", fields: [managerId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  directReports        User[]                @relation("ManagerEmployee")
+  buddy                User?                 @relation("UserBuddy", fields: [buddyId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  buddyFor             User[]                @relation("UserBuddy")
+  refreshTokens        RefreshToken[]
+  loginHistory         LoginHistory[]
+  notificationSettings NotificationSetting[]
+  delegationTasksBy    DelegationTask[]      @relation("DelegationTaskBy")
+  delegationTasksTo    DelegationTask[]      @relation("DelegationTaskTo")
+  workRequestsBy       WorkRequest[]         @relation("WorkRequestBy")
+  workRequestsFor      WorkRequest[]         @relation("WorkRequestFor")
+  checklistMasters     ChecklistMaster[]     @relation("ChecklistMasterTo")
+  checklistTasksTo     ChecklistTask[]       @relation("ChecklistTaskTo")
+  fmsTasksAsDoer       FmsTask[]             @relation("FmsTaskPerson")
+  comments             Comment[]             @relation("CommentAuthor")
+  hierarchiesAsAdmin   Hierarchy[]           @relation("HierarchyAdmin")
+  auditLogsAsActor     AuditLog[]            @relation("AuditLogActor")
+  bulkImportBatches    BulkImportBatch[]     @relation("BulkImportUploader")
+
+  @@unique([tenantId, email])
+  @@unique([tenantId, employeeId])
+  @@index([tenantId, status])
+  @@index([tenantId, role])
+  @@index([managerId])
+  @@index([buddyId])
+  @@map("users")
+}
+
+model RefreshToken {
+  id         String    @id @default(auto()) @map("_id") @db.ObjectId
+  userId     String    @db.ObjectId
+  tokenHash  String    @unique
+  deviceInfo String?
+  ipAddress  String?
+  expiresAt  DateTime
+  revokedAt  DateTime?
+  createdAt  DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("refreshTokens")
+}
+
+model LoginHistory {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId     String   @db.ObjectId
+  ipAddress  String?
+  device     String?
+  userAgent  String?
+  success    Boolean
+  failReason String?
+  createdAt  DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId, createdAt])
+  @@map("loginHistory")
+}
+
+model Role {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  tenantId    String   @db.ObjectId
+  name        String
+  description String?
+  permissions String[] // permission keys
+  isSystem    Boolean  @default(false) // built-in roles cannot be deleted
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([tenantId, name])
+  @@map("roles")
+}
+
+model NotificationSetting {
+  id       String           @id @default(auto()) @map("_id") @db.ObjectId
+  userId   String           @db.ObjectId
+  type     NotificationType
+  inApp    Boolean          @default(true)
+  email    Boolean          @default(true)
+  push     Boolean          @default(false)
+  whatsapp Boolean          @default(false)
+  muted    Boolean          @default(false)
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([userId, type])
+  @@map("notificationSettings")
+}
+
+model IntegrationAccount {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  tenantId      String   @db.ObjectId
+  provider      String   // GOOGLE_CALENDAR | GOOGLE_SHEETS | GOOGLE_SSO | MICROSOFT_SSO | SENDGRID | AWS_SES | WHATSAPP
+  isEnabled     Boolean  @default(false)
+  config        Json     // provider-specific credentials/settings
+  lastTestedAt   DateTime?
+  lastSyncedAt   DateTime?
+  createdBy     String?  @db.ObjectId
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  @@unique([tenantId, provider])
+  @@index([tenantId, isEnabled])
+  @@map("integrationAccounts")
+}
+
+model ExternalSync {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  tenantId      String   @db.ObjectId
+  provider      String   // GOOGLE_CALENDAR | GOOGLE_SHEETS | WHATSAPP | SENDGRID
+  entityType    String   // DELEGATION | WORK_REQUEST | CHECKLIST | FMS | REPORT
+  entityId      String
+  externalId    String?
+  externalUrl   String?
+  payload       Json?
+  status        String   @default("ACTIVE")
+  lastError     String?
+  lastSyncedAt  DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  @@unique([tenantId, provider, entityType, entityId])
+  @@index([tenantId, provider, entityType])
+  @@map("externalSyncs")
+}
+
+// ============================================================
+// HIERARCHY
+// ============================================================
+
+model Hierarchy {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  tenantId    String   @db.ObjectId
+  groupName   String
+  adminId     String   @db.ObjectId // Admin/Manager who heads this group
+  memberIds   String[] @db.ObjectId // Employees in this group
+  description String?
+  createdBy   String   @db.ObjectId
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+  admin  User   @relation("HierarchyAdmin", fields: [adminId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@unique([tenantId, groupName])
+  @@index([tenantId, adminId])
+  @@map("hierarchies")
+}
+
+// ============================================================
+// PROJECTS
+// ============================================================
+
+model Project {
+  id          String        @id @default(auto()) @map("_id") @db.ObjectId
+  tenantId    String        @db.ObjectId
+  code        String? // e.g. PROJ-001
+  name        String
+  description String?
+  color       String?
+  status      ProjectStatus @default(ACTIVE)
+  memberIds   String[]      @db.ObjectId
+  managerId   String?       @db.ObjectId
+  startDate   DateTime?
+  endDate     DateTime?
+  slaHours    Int?
+  tags        String[]
+  healthScore Float?        @default(100)
+  riskStatus  RiskLevel?    @default(LOW)
+  createdBy   String        @db.ObjectId
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  tenant           Tenant            @relation(fields: [tenantId], references: [id])
+  delegationTasks  DelegationTask[]
+  workRequests     WorkRequest[]
+  checklistMasters ChecklistMaster[]
+  checklistTasks   ChecklistTask[]
+  fmsWorkflows     FmsWorkflow[]
+
+  @@unique([tenantId, name])
+  @@index([tenantId, status])
+  @@map("projects")
+}
+
+// ============================================================
+// ATTACHMENTS
+// ============================================================
+
+model Attachment {
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  tenantId     String   @db.ObjectId
+  publicId     String // Cloudinary publicId
+  url          String
+  originalName String
+  mimeType     String?
+  resourceType String // image, video, raw
+  format       String?
+  size         Int?
+  sizeBytes    Int?
+  category     String? // proof, brief, invoice, screenshot, etc.
+  attachedTo   String? // e.g. "delegation:taskId" or "workRequest:requestId"
+  uploadedById String   @db.ObjectId
+  createdAt    DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  @@index([tenantId, attachedTo])
+  @@index([uploadedById])
+  @@map("attachments")
+}
+
+// ============================================================
+// DELEGATION TASKS
+// ============================================================
+
+model DelegationTask {
+  id                String        @id @default(auto()) @map("_id") @db.ObjectId
+  tenantId          String        @db.ObjectId
+  taskId            String // human-readable ID (TASK-2024-001)
+  delegatedById     String        @db.ObjectId
+  delegatedToId     String        @db.ObjectId
+  projectId         String?       @db.ObjectId
+  title             String
+  description       String?
+  priority          Priority      @default(MEDIUM)
+  status            TaskStatus    @default(PENDING)
+  targetDate        DateTime
+  targetTime        String?
+  estimatedHours    Float?
+  tags              String[]
+  attachmentIds     String[]      @db.ObjectId
+  dependsOnIds      String[]      @db.ObjectId // task IDs this is blocked by
+  approvalRequired  Boolean       @default(true)
+  slaHours          Int?
+  reminderRules     Json?
+  // Completion fields
+  doerRemarks       String?
+  doerAttachmentIds String[]      @db.ObjectId
+  submittedAt       DateTime?
+  // Approval fields
+  approvedById      String?       @db.ObjectId
+  approvalRemark    String?
+  reworkRemark      String?
+  finalRemarks      String?
+  rating            Float?
+  actualDate        DateTime?
+  completedAt       DateTime?
+  approvedAt        DateTime?
+  // Delay tracking
+  delayDays         Float?
+  onTimeStatus      OnTimeStatus?
+  reworkCount       Int           @default(0)
+  riskScore         Float?
+  // Meta
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  tenant      Tenant   @relation(fields: [tenantId], references: [id])
+  delegatedBy User     @relation("DelegationTaskBy", fields: [delegatedById], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  delegatedTo User     @relation("DelegationTaskTo", fields: [delegatedToId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  project     Project? @relation(fields: [projectId], references: [id])
+
+  @@unique([tenantId, taskId])
+  @@index([tenantId, status])
+  @@index([tenantId, delegatedToId, status])
+  @@index([tenantId, delegatedById])
+  @@index([tenantId, projectId])
+  @@index([tenantId, targetDate])
+  @@index([tenantId, delegatedToId, createdAt])
+  @@map("delegationTasks")
+}
+
+// ============================================================
+// WORK REQUESTS
+// ============================================================
+
+model WorkRequest {
+  id                String        @id @default(auto()) @map("_id") @db.ObjectId
+  tenantId          String        @db.ObjectId
+  requestId         String // human-readable ID (WR-2024-001)
+  requestedById     String        @db.ObjectId
+  requestedForId    String        @db.ObjectId // doer
+  projectId         String?       @db.ObjectId
+  title             String?
+  description       String
+  priority          Priority      @default(MEDIUM)
+  status            TaskStatus    @default(PENDING)
+  deadlineDate      DateTime
+  deadlineTime      String?
+  attachmentIds     String[]      @db.ObjectId
+  approvalRequired  Boolean       @default(true)
+  slaHours          Int?
+  // Completion fields
+  doerRemarks       String?
+  doerAttachmentIds String[]      @db.ObjectId
+  submittedAt       DateTime?
+  // Approval fields
+  approvedById      String?       @db.ObjectId
+  approvalRemark    String?
+  reworkRemark      String?
+  finalRemarks      String?
+  completedAt       DateTime?
+  approvedAt        DateTime?
+  // Delay tracking
+  delayDays         Float?
+  onTimeStatus      OnTimeStatus?
+  reworkCount       Int           @default(0)
+  // Meta
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  tenant      Tenant   @relation(fields: [tenantId], references: [id])
+  requestedBy User     @relation("WorkRequestBy", fields: [requestedById], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  requestFor  User     @relation("WorkRequestFor", fields: [requestedForId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  project     Project? @relation(fields: [projectId], references: [id])
+
+  @@unique([tenantId, requestId])
+  @@index([tenantId, status])
+  @@index([tenantId, requestedForId, status])
+  @@index([tenantId, requestedById])
+  @@index([tenantId, projectId])
+  @@index([tenantId, deadlineDate])
+  @@index([tenantId, requestedForId, createdAt])
+  @@map("workRequests")
+}
+
+// ============================================================
+// CHECKLIST
+// ============================================================
+
+model ChecklistMaster {
+  id                 String             @id @default(auto()) @map("_id") @db.ObjectId
+  tenantId           String             @db.ObjectId
+  masterId           String // human-readable (CL-MASTER-001)
+  assignedToId       String             @db.ObjectId
+  projectId          String?            @db.ObjectId
+  title              String
+  description        String?
+  frequency          ChecklistFrequency
+  startDate          DateTime
+  startTime          String
+  endDate            DateTime?
+  attachmentRequired Boolean            @default(false)
+  tags               String[]
+  isActive           Boolean            @default(true)
+  createdBy          String             @db.ObjectId
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  tenant         Tenant          @relation(fields: [tenantId], references: [id])
+  assignedTo     User            @relation("ChecklistMasterTo", fields: [assignedToId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  project        Project?        @relation(fields: [projectId], references: [id])
+  checklistTasks ChecklistTask[]
+
+  @@unique([tenantId, masterId])
+  @@index([tenantId, assignedToId])
+  @@index([tenantId, isActive])
+  @@map("checklistMasters")
+}
+
+model ChecklistTask {
+  id                 String             @id @default(auto()) @map("_id") @db.ObjectId
+  tenantId           String             @db.ObjectId
+  masterId           String             @db.ObjectId
+  taskId             String // human-readable (CL-2024-001)
+  assignedToId       String             @db.ObjectId
+  projectId          String?            @db.ObjectId
+  title              String
+  description        String?
+  frequency          ChecklistFrequency
+  plannedDate        DateTime
+  plannedTime        String
+  attachmentRequired Boolean            @default(false)
+  // Completion
+  status             String             @default("PENDING") // PENDING | COMPLETED | LATE
+  actualDate         DateTime?
+  remarks            String?
+  attachmentIds      String[]           @db.ObjectId
+  // Delay tracking
+  delayDays          Float?
+  onTimeStatus       OnTimeStatus?
+  completedById      String?            @db.ObjectId
+  completedAt        DateTime?
+  // Meta
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  tenant     Tenant          @relation(fields: [tenantId], references: [id])
+  master     ChecklistMaster @relation(fields: [masterId], references: [id])
+  assignedTo User            @relation("ChecklistTaskTo", fields: [assignedToId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  project    Project?        @relation(fields: [projectId], references: [id])
+
+  @@unique([tenantId, taskId])
+  @@unique([masterId, plannedDate])
+  @@index([tenantId, assignedToId, status])
+  @@index([tenantId, plannedDate])
+  @@index([tenantId, masterId])
+  @@index([tenantId, assignedToId, createdAt])
+  @@map("checklistTasks")
+}
+
+// ============================================================
+// FMS SYSTEM
+// ============================================================
+
+model FmsWorkflow {
+  id            String         @id @default(auto()) @map("_id") @db.ObjectId
+  tenantId      String         @db.ObjectId
+  workflowId    String // human-readable (WF-001)
+  name          String
+  description   String?
+  category      String?
+  projectId     String?        @db.ObjectId
+  status        WorkflowStatus @default(DRAFT)
+  isAiGenerated Boolean        @default(false)
+  aiPrompt      String?
+  publishedAt   DateTime?
+  publishedBy   String?        @db.ObjectId
+  version       Int            @default(1)
+  tags          String[]
+  createdBy     String         @db.ObjectId
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  tenant   Tenant    @relation(fields: [tenantId], references: [id])
+  project  Project?  @relation(fields: [projectId], references: [id])
+  steps    FmsStep[]
+  fmsTasks FmsTask[]
+
+  @@unique([tenantId, workflowId])
+  @@index([tenantId, status])
+  @@map("fmsWorkflows")
+}
+
+model FmsStep {
+  id                 String   @id @default(auto()) @map("_id") @db.ObjectId
+  tenantId           String   @db.ObjectId
+  workflowId         String   @db.ObjectId
+  stepNo             Int
+  stepName           String
+  what               String // what needs to be done
+  how                String? // how to do it
+  when               String? // timing instruction
+  assignedRoleId     String?  @db.ObjectId
+  assignedUserId     String?  @db.ObjectId
+  slaHours           Int?
+  formId             String?  @db.ObjectId
+  formLink           String? // external form link
+  attachmentRequired Boolean  @default(false)
+  approvalRequired   Boolean  @default(false)
+  dependsOnStepNos   Int[]
+  conditions         Json? // conditional logic
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  workflow FmsWorkflow @relation(fields: [workflowId], references: [id])
+
+  @@unique([workflowId, stepNo])
+  @@index([tenantId])
+  @@map("fmsSteps")
+}
+
+model FmsTask {
+  id            String        @id @default(auto()) @map("_id") @db.ObjectId
+  tenantId      String        @db.ObjectId
+  workflowId    String        @db.ObjectId
+  fmsTaskId     String // human-readable (FMS-2024-001)
+  personId      String        @db.ObjectId // assigned user
+  stepNo        Int
+  stepName      String
+  what          String
+  how           String?
+  when          String?
+  fmsName       String // workflow name snapshot
+  formLink      String?
+  plannedDate   DateTime
+  actualDate    DateTime?
+  status        FmsTaskStatus @default(PENDING)
+  delayDays     Float?
+  onTimeStatus  OnTimeStatus?
+  remarks       String?
+  attachmentIds String[]      @db.ObjectId
+  skippedReason String?
+  skippedBy     String?       @db.ObjectId
+  completedAt   DateTime?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  tenant   Tenant      @relation(fields: [tenantId], references: [id])
+  workflow FmsWorkflow @relation(fields: [workflowId], references: [id])
+  person   User        @relation("FmsTaskPerson", fields: [personId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@unique([tenantId, fmsTaskId])
+  @@index([tenantId, personId, status])
+  @@index([tenantId, workflowId])
+  @@index([tenantId, plannedDate])
+  @@index([tenantId, personId, createdAt])
+  @@map("fmsTasks")
+}
+
+// ============================================================
+// APPROVAL SYSTEM
+// ============================================================
+
+model Approval {
+  id               String          @id @default(auto()) @map("_id") @db.ObjectId
+  tenantId         String          @db.ObjectId
+  refType          String // "DELEGATION" | "WORK_REQUEST" | "CHECKLIST" | "FMS"
+  refId            String          @db.ObjectId // ID of the parent task
+  approvalType     ApprovalType    @default(SINGLE)
+  currentLevel     Int             @default(1)
+  totalLevels      Int             @default(1)
+  status           ApprovalStatus  @default(PENDING)
+  submittedBy      String          @db.ObjectId
+  submittedAt      DateTime        @default(now())
+  levels           ApprovalLevel[]
+  remarks          String?
+  forceCompleted   Boolean         @default(false)
+  forceCompletedBy String?         @db.ObjectId
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  @@index([tenantId, status])
+  @@index([tenantId, refType, refId])
+  @@index([tenantId, submittedBy])
+  @@map("approvals")
+}
+
+model ApprovalLevel {
+  id          String         @id @default(auto()) @map("_id") @db.ObjectId
+  approvalId  String         @db.ObjectId
+  level       Int
+  approverId  String         @db.ObjectId
+  status      ApprovalStatus @default(PENDING)
+  remarks     String?
+  actionAt    DateTime?
+  delegatedTo String?        @db.ObjectId
+  createdAt   DateTime       @default(now())
+
+  approval Approval @relation(fields: [approvalId], references: [id])
+
+  @@index([approvalId])
+  @@index([approverId, status])
+  @@map("approvalLevels")
+}
+
+// ============================================================
+// COMMENTS & ACTIVITY TIMELINE
+// ============================================================
+
+model Comment {
+  id        String    @id @default(auto()) @map("_id") @db.ObjectId
+  tenantId  String    @db.ObjectId
+  refType   String // "DELEGATION" | "WORK_REQUEST" | "CHECKLIST" | "FMS"
+  refId     String // polymorphic ref (not a typed FK)
+  authorId  String    @db.ObjectId
+  body      String
+  parentId  String?   @db.ObjectId
+  isPinned  Boolean   @default(false)
+  editedAt  DateTime?
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  author  User      @relation("CommentAuthor", fields: [authorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  parent  Comment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  replies Comment[] @relation("CommentReplies")
+
+  @@index([tenantId, refType, refId])
+  @@index([authorId])
+  @@map("comments")
+}
+
+model ActivityLog {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  tenantId    String   @db.ObjectId
+  refType     String // "DELEGATION" | "WORK_REQUEST" | "CHECKLIST" | "FMS"
+  refId       String // polymorphic — not a typed FK (avoids Prisma multi-model conflict)
+  actorId     String   @db.ObjectId
+  action      String // e.g. "status_changed", "assigned", "approved"
+  description String // human-readable: "Task assigned to Sunny"
+  oldValue    Json?
+  newValue    Json?
+  createdAt   DateTime @default(now())
+
+  @@index([tenantId, refType, refId])
+  @@index([tenantId, createdAt])
+  @@map("activityLogs")
+}
+
+// ============================================================
+// MIS PERFORMANCE
+// ============================================================
+
+model MisSnapshot {
+  id                String   @id @default(auto()) @map("_id") @db.ObjectId
+  tenantId          String   @db.ObjectId
+  userId            String   @db.ObjectId
+  periodType        String // "WEEKLY" | "MONTHLY"
+  periodStart       DateTime
+  periodEnd         DateTime
+  totalTasks        Int      @default(0)
+  completed         Int      @default(0)
+  pending           Int      @default(0)
+  overdue           Int      @default(0)
+  onTime            Int      @default(0)
+  late              Int      @default(0)
+  delayDaysTotal    Float    @default(0)
+  reworkCount       Int      @default(0)
+  slaBreaches       Int      @default(0)
+  // Breakdown
+  delegationScore   Float?
+  workRequestScore  Float?
+  checklistScore    Float?
+  fmsScore          Float?
+  // Final
+  productivityScore Float?
+  grade             MisGrade @default(N_A)
+  targetScore       Float?
+  // Category breakdown
+  breakdown         Json? // { delegation: {...}, workRequest: {...}, checklist: {...}, fms: {...} }
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  @@unique([tenantId, userId, periodType, periodStart])
+  @@index([tenantId, periodStart])
+  @@map("misSnapshots")
+}
+
+// ============================================================
+// NOTIFICATIONS
+// ============================================================
+
+model Notification {
+  id          String                @id @default(auto()) @map("_id") @db.ObjectId
+  tenantId    String                @db.ObjectId
+  userId      String                @db.ObjectId // recipient
+  type        NotificationType
+  title       String
+  body        String
+  refType     String? // "DELEGATION" | "WORK_REQUEST" | etc.
+  refId       String?               @db.ObjectId
+  triggeredBy String?               @db.ObjectId
+  isRead      Boolean               @default(false)
+  readAt      DateTime?
+  channels    NotificationChannel[]
+  createdAt   DateTime              @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  @@index([tenantId, userId, isRead])
+  @@index([tenantId, createdAt])
+  @@map("notifications")
+}
+
+// ============================================================
+// AUDIT LOGS
+// ============================================================
+
+model AuditLog {
+  id          String      @id @default(auto()) @map("_id") @db.ObjectId
+  tenantId    String      @db.ObjectId
+  actorId     String      @db.ObjectId
+  action      AuditAction
+  module      AuditModule
+  refId       String?     @db.ObjectId
+  refType     String?
+  description String
+  oldValue    Json?
+  newValue    Json?
+  ipAddress   String?
+  device      String?
+  userAgent   String?
+  createdAt   DateTime    @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+  actor  User   @relation("AuditLogActor", fields: [actorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([tenantId, createdAt])
+  @@index([tenantId, actorId])
+  @@index([tenantId, action])
+  @@index([tenantId, module])
+  @@map("auditLogs")
+}
+
+model PlatformAuditLog {
+  id             String    @id @default(auto()) @map("_id") @db.ObjectId
+  action         String
+  actorId        String?   @db.ObjectId
+  actorRole      String?
+  targetTenantId String?   @db.ObjectId
+  targetUserId   String?   @db.ObjectId
+  ipAddress      String?
+  device         String?
+  browser        String?
+  oldValue       Json?
+  newValue       Json?
+  metadata       Json?
+  createdAt      DateTime  @default(now())
+
+  @@index([createdAt])
+  @@index([actorId])
+  @@index([targetTenantId])
+  @@map("platformAuditLogs")
+}
+
+// ============================================================
+// REPORTS
+// ============================================================
+
+model ReportTemplate {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  tenantId   String   @db.ObjectId
+  name       String
+  reportType String // "PERFORMANCE" | "DELEGATION" | "WORK_REQUEST" | etc.
+  filters    Json // saved filter config
+  columns    String[] // selected columns
+  createdBy  String   @db.ObjectId
+  isShared   Boolean  @default(false)
+  schedule   Json? // { frequency: "WEEKLY", time: "09:00", recipients: [...] }
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([tenantId, reportType])
+  @@index([tenantId, createdBy])
+  @@map("reportTemplates")
+}
+
+// ============================================================
+// AUTOMATION RULES
+// ============================================================
+
+model AutomationRule {
+  id           String            @id @default(auto()) @map("_id") @db.ObjectId
+  tenantId     String            @db.ObjectId
+  name         String
+  description  String?
+  trigger      AutomationTrigger
+  conditions   Json // { field, operator, value }[]
+  action       AutomationAction
+  actionConfig Json // action-specific config
+  isActive     Boolean           @default(true)
+  runCount     Int               @default(0)
+  lastRunAt    DateTime?
+  createdBy    String            @db.ObjectId
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  @@index([tenantId, isActive])
+  @@index([tenantId, trigger])
+  @@map("automationRules")
+}
+
+// ============================================================
+// DYNAMIC FORMS
+// ============================================================
+
+model Form {
+  id          String      @id @default(auto()) @map("_id") @db.ObjectId
+  tenantId    String      @db.ObjectId
+  name        String
+  description String?
+  fields      FormField[]
+  isActive    Boolean     @default(true)
+  createdBy   String      @db.ObjectId
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  tenant    Tenant         @relation(fields: [tenantId], references: [id])
+  responses FormResponse[]
+
+  @@index([tenantId, isActive])
+  @@map("forms")
+}
+
+type FormField {
+  id          String
+  label       String
+  type        FormFieldType
+  required    Boolean
+  options     String[] // for dropdown/radio/multi-select
+  placeholder String?
+  order       Int
+  validation  Json?
+}
+
+model FormResponse {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  formId      String   @db.ObjectId
+  refType     String
+  refId       String
+  submittedBy String   @db.ObjectId
+  responses   Json
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  form Form @relation(fields: [formId], references: [id], onDelete: Cascade)
+
+  @@index([formId])
+  @@index([refType, refId])
+  @@map("formResponses")
+}
+
+model ClientUser {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  tenantId  String   @db.ObjectId
+  name      String
+  email     String
+  phone     String?
+  company   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  @@unique([tenantId, email])
+  @@map("clientUsers")
+}
+
+model VendorUser {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  tenantId  String   @db.ObjectId
+  name      String
+  email     String
+  phone     String?
+  company   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  @@unique([tenantId, email])
+  @@map("vendorUsers")
+}
+
+model Template {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  tenantId  String   @db.ObjectId
+  name      String
+  type      String
+  content   Json?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  @@index([tenantId, type])
+  @@map("templates")
+}
+
+// ============================================================
+// PLATFORM ADMIN CONSOLE
+// ============================================================
+
+model PlatformUser {
+  id                  String    @id @default(auto()) @map("_id") @db.ObjectId
+  email               String    @unique
+  name                String
+  phone               String?
+  avatarUrl           String?
+  passwordHash        String
+  role                String    @default("PLATFORM_ADMIN")
+  status              String    @default("ACTIVE")
+  permissions         String[]  @default([])
+  twoFactorEnabled    Boolean   @default(false)
+  twoFactorSecret     String?
+  lastLoginAt         DateTime?
+  failedLoginAttempts Int       @default(0)
+  lockedUntil         DateTime?
+  createdBy           String?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  @@map("platformUsers")
+}
+
+model PlatformRole {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  name        String   @unique
+  description String?
+  permissions String[] @default([])
+  isSystem    Boolean  @default(false)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("platformRoles")
+}
+
+model PlatformPermission {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  key         String   @unique
+  category    String?
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("platformPermissions")
+}
+
+model PlatformRefreshToken {
+  id         String    @id @default(auto()) @map("_id") @db.ObjectId
+  userId     String    @db.ObjectId
+  tokenHash  String    @unique
+  deviceInfo String?
+  ipAddress  String?
+  expiresAt  DateTime
+  revokedAt  DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([expiresAt])
+  @@map("platformRefreshTokens")
+}
+
+model PlatformLoginHistory {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId     String   @db.ObjectId
+  ipAddress  String?
+  device     String?
+  userAgent  String?
+  success    Boolean
+  failReason String?
+  createdAt  DateTime @default(now())
+
+  @@map("platformLoginHistory")
+}
+
+model ImpersonationSession {
+  id                String    @id @default(auto()) @map("_id") @db.ObjectId
+  platformUserId    String    @db.ObjectId
+  targetTenantId    String    @db.ObjectId
+  targetUserId      String?   @db.ObjectId
+  targetCompanyName String
+  reason            String
+  status            String    @default("ACTIVE")
+  tokenHash         String?
+  startedAt         DateTime  @default(now())
+  endedAt           DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@map("impersonationSessions")
+}
+
+model Invoice {
+  id              String    @id @default(auto()) @map("_id") @db.ObjectId
+  invoiceNumber   String    @unique
+  tenantId        String    @db.ObjectId
+  tenantName      String
+  planName        String
+  amount          Float
+  tax             Float     @default(0)
+  discount        Float     @default(0)
+  totalAmount     Float
+  paymentStatus   String    @default("PENDING")
+  paymentMethod   String?
+  paymentDate     DateTime?
+  dueDate         DateTime?
+  nextBillingDate DateTime?
+  pdfUrl          String?
+  notes           String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([tenantId])
+  @@index([paymentStatus])
+  @@map("invoices")
+}
+
+// ============================================================
+// BULK IMPORT
+// ============================================================
+
+enum BulkImportStatus {
+  PENDING
+  VALIDATING
+  IMPORTING
+  COMPLETED
+  PARTIAL
+  FAILED
+}
+
+enum BulkImportRowStatus {
+  VALID
+  INVALID
+  IMPORTED
+  FAILED
+  SKIPPED
+  DUPLICATE
+}
+
+model BulkImportBatch {
+  id           String            @id @default(auto()) @map("_id") @db.ObjectId
+  tenantId     String            @db.ObjectId
+  moduleName   String
+  fileName     String
+  uploadedById String            @db.ObjectId
+  totalRows    Int               @default(0)
+  validRows    Int               @default(0)
+  invalidRows  Int               @default(0)
+  importedRows Int               @default(0)
+  failedRows   Int               @default(0)
+  skippedRows  Int               @default(0)
+  status       BulkImportStatus  @default(PENDING)
+  importMode   String            @default("valid_only")
+  createdAt    DateTime          @default(now())
+  completedAt  DateTime?
+
+  tenant     Tenant          @relation(fields: [tenantId], references: [id])
+  uploadedBy User            @relation("BulkImportUploader", fields: [uploadedById], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  rows       BulkImportRow[]
+
+  @@index([tenantId, moduleName, createdAt])
+  @@index([tenantId, uploadedById])
+  @@map("bulkImportBatches")
+}
+
+model BulkImportRow {
+  id              String              @id @default(auto()) @map("_id") @db.ObjectId
+  batchId         String              @db.ObjectId
+  rowNumber       Int
+  rawData         Json
+  normalizedData  Json?
+  rowStatus       BulkImportRowStatus
+  errors          Json?
+  createdRecordId String?
+  createdAt       DateTime            @default(now())
+
+  batch BulkImportBatch @relation(fields: [batchId], references: [id])
+
+  @@index([batchId, rowStatus])
+  @@map("bulkImportRows")
+}

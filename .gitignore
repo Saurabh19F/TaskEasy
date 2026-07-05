@@ -1,0 +1,40 @@
+# Env files
+.env
+.env.local
+.env.*.local
+apps/**/.env
+apps/**/.env.local
+
+# Build outputs
+apps/api/dist/
+apps/web/.next/
+dist/
+.next/
+*.tsbuildinfo
+
+# Generated Prisma client
+apps/api/src/generated/
+
+# Dependencies
+node_modules/
+apps/*/node_modules/
+
+# Test outputs
+apps/web/playwright-report/
+apps/web/test-results/
+apps/web/coverage/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# Claude Code
+.claude/
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db

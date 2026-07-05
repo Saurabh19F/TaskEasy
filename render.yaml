@@ -41,15 +41,9 @@ services:
           type: redis
           property: port
       - key: REDIS_PASSWORD
-        fromService:
-          name: taskeasy-redis
-          type: redis
-          property: password
+        sync: false
       - key: FRONTEND_URL
-        fromService:
-          name: taskeasy-web
-          type: web
-          property: url
+        sync: false
       - key: CLOUDINARY_CLOUD_NAME
         sync: false
       - key: CLOUDINARY_API_KEY

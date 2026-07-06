@@ -1,8 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import { CreditCard, DollarSign } from 'lucide-react';
+import { CheckCircle, CreditCard, DollarSign } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
+import toast from 'react-hot-toast';
 import { PlatformPageFrame } from '@/components/platform/PlatformPageFrame';
 import { StatCard } from '@/components/ui/StatCard';
 import { DataTable } from '@/components/ui/DataTable';
@@ -12,6 +13,7 @@ import { Modal } from '@/components/ui/Modal';
 import { Input, Select } from '@/components/ui/Input';
 import { usePlatformBilling, usePlatformCompanies, usePlatformPlans } from '@/hooks/usePlatform';
 import { platformBillingApi } from '@/lib/platform-api';
+import { getPlatformApiError } from '@/lib/platform-axios';
 import { formatDate, formatNumber } from '@/lib/utils';
 
 const EMPTY_INVOICE = { tenantId: '', planId: '', totalAmount: '', dueDate: '' };
@@ -28,15 +30,22 @@ export default function PlatformBillingPage() {
   const [saving, setSaving] = useState(false);
 
   const handleCreate = async () => {
+    if (!form.tenantId) {
+      toast.error('Company is required');
+      return;
+    }
     setSaving(true);
     try {
       await platformBillingApi.invoices.create({
         ...form,
         totalAmount: Number(form.totalAmount) || 0,
       });
+      toast.success('Invoice generated');
       setCreateOpen(false);
       setForm(EMPTY_INVOICE);
       qc.invalidateQueries({ queryKey: ['platform', 'billing'] });
+    } catch (error) {
+      toast.error(getPlatformApiError(error));
     } finally {
       setSaving(false);
     }
@@ -54,7 +63,7 @@ export default function PlatformBillingPage() {
         <StatCard label="Pending Revenue" value={`$${formatNumber(Number(summary.pendingRevenue ?? 0))}`} icon={CreditCard} color="yellow" />
       </div>
 
-      <div className="rounded-2xl border border-slate-200/10 bg-slate-950/70 p-5 shadow-xl">
+      <div className="panel-strong p-5">
         <DataTable
           data={invoices}
           loading={isLoading}
@@ -70,6 +79,32 @@ export default function PlatformBillingPage() {
             { key: 'paymentStatus', header: 'Status', render: (value) => <StatusBadge status={value} /> },
             { key: 'dueDate', header: 'Due Date', render: (value) => formatDate(value) },
             { key: 'nextBillingDate', header: 'Next Billing', render: (value) => formatDate(value) },
+            {
+              key: 'id',
+              header: 'Actions',
+              render: (_, row) => {
+                const status = String(row.paymentStatus ?? '').toUpperCase();
+                if (status === 'PAID' || status === 'COMPLETED') return <span className="text-xs text-muted-foreground">Paid</span>;
+                return (
+                  <Button
+                    size="xs"
+                    variant="outline"
+                    leftIcon={<CheckCircle className="h-3.5 w-3.5" />}
+                    onClick={async () => {
+                      try {
+                        await platformBillingApi.invoices.updateStatus(row.id, { paymentStatus: 'PAID' });
+                        toast.success('Invoice marked as paid');
+                        qc.invalidateQueries({ queryKey: ['platform', 'billing'] });
+                      } catch (error) {
+                        toast.error(getPlatformApiError(error));
+                      }
+                    }}
+                  >
+                    Mark Paid
+                  </Button>
+                );
+              },
+            },
           ]}
         />
       </div>

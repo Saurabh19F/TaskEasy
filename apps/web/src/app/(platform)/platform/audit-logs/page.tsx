@@ -16,7 +16,7 @@ export default function PlatformAuditLogsPage() {
       description="Search sensitive platform actions, actors, targets, and metadata."
       actions={<ScrollText className="h-5 w-5 text-amber-300" />}
     >
-      <div className="rounded-2xl border border-slate-200/10 bg-slate-950/70 p-5 shadow-xl">
+      <div className="panel-strong p-5">
         <DataTable
           data={data}
           loading={isLoading}
@@ -26,7 +26,7 @@ export default function PlatformAuditLogsPage() {
           rowKey={(row) => row.id}
           columns={[
             { key: 'action', header: 'Action', sortable: true },
-            { key: 'actorRole', header: 'Role', render: (value) => <Badge className="bg-slate-800 text-slate-200">{value}</Badge> },
+            { key: 'actorRole', header: 'Role', render: (value) => <Badge>{value}</Badge> },
             { key: 'targetTenantId', header: 'Tenant', render: (value) => value ?? '—' },
             { key: 'ipAddress', header: 'IP', render: (value) => value ?? '—' },
             { key: 'createdAt', header: 'Time', render: (value) => formatDateTime(value) },

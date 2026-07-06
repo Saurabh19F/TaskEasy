@@ -3,11 +3,13 @@
 import { useState } from 'react';
 import { ToggleLeft, ChevronDown, ChevronUp, Save } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
+import toast from 'react-hot-toast';
 import { PlatformPageFrame } from '@/components/platform/PlatformPageFrame';
 import { StatusBadge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { usePlatformCompanies } from '@/hooks/usePlatform';
 import { platformCompaniesApi } from '@/lib/platform-api';
+import { getPlatformApiError } from '@/lib/platform-axios';
 
 const MODULES = [
   'Task Management',
@@ -59,17 +61,20 @@ function CompanyModuleRow({ company }: { company: any }) {
     setSaving(true);
     try {
       await platformCompaniesApi.updateModules(company.id, modules);
+      toast.success('Modules updated');
       qc.invalidateQueries({ queryKey: ['platform', 'companies'] });
+    } catch (error) {
+      toast.error(getPlatformApiError(error));
     } finally {
       setSaving(false);
     }
   };
 
   return (
-    <div className="rounded-xl border border-slate-200/10 bg-slate-950/50 overflow-hidden">
+    <div className="rounded-xl border border-border bg-surface overflow-hidden">
       <button
         onClick={() => setExpanded(!expanded)}
-        className="w-full flex items-center justify-between px-5 py-4 hover:bg-slate-800/30 transition-colors text-left"
+        className="w-full flex items-center justify-between px-5 py-4 hover:bg-surface-muted transition-colors text-left"
       >
         <div className="flex items-center gap-4">
           <div>
@@ -85,12 +90,12 @@ function CompanyModuleRow({ company }: { company: any }) {
       </button>
 
       {expanded && (
-        <div className="border-t border-slate-200/10 px-5 py-4">
+        <div className="border-t border-border px-5 py-4">
           <div className="flex items-center justify-between mb-4">
             <div className="flex gap-2">
-              <button onClick={() => handleToggleAll(true)} className="text-xs text-blue-400 hover:text-blue-300">Enable All</button>
-              <span className="text-slate-600">|</span>
-              <button onClick={() => handleToggleAll(false)} className="text-xs text-red-400 hover:text-red-300">Disable All</button>
+              <button onClick={() => handleToggleAll(true)} className="text-xs text-primary hover:text-primary/80">Enable All</button>
+              <span className="text-muted-foreground">|</span>
+              <button onClick={() => handleToggleAll(false)} className="text-xs text-danger hover:text-danger/80">Disable All</button>
             </div>
             <Button size="sm" onClick={handleSave} loading={saving} leftIcon={<Save className="h-3.5 w-3.5" />}>
               Save Changes
@@ -100,10 +105,9 @@ function CompanyModuleRow({ company }: { company: any }) {
             {MODULES.map((module) => (
               <label
                 key={module}
-                className="flex items-center gap-3 rounded-lg border border-slate-200/10 px-3 py-2.5 cursor-pointer hover:bg-slate-800/30 transition-colors"
+                className="flex items-center gap-3 rounded-lg border border-border px-3 py-2.5 cursor-pointer hover:bg-surface-muted transition-colors"
               >
-                <div className="relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer items-center rounded-full transition-colors"
-                  style={{ backgroundColor: modules[module] ? 'rgb(34 197 94)' : 'rgb(71 85 105)' }}
+                <div className={`relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer items-center rounded-full transition-colors ${modules[module] ? 'bg-success' : 'bg-muted-foreground/30'}`}
                 >
                   <span
                     className="inline-block h-3.5 w-3.5 rounded-full bg-white transition-transform"
@@ -136,9 +140,9 @@ export default function PlatformFeatureControlPage() {
       actions={<ToggleLeft className="h-5 w-5 text-amber-300" />}
     >
       {isLoading ? (
-        <div className="text-center py-12 text-slate-400">Loading companies...</div>
+        <div className="text-center py-12 text-muted-foreground">Loading companies...</div>
       ) : data.length === 0 ? (
-        <div className="text-center py-12 text-slate-400">No companies found.</div>
+        <div className="text-center py-12 text-muted-foreground">No companies found.</div>
       ) : (
         <div className="space-y-3">
           {data.map((company: any) => (

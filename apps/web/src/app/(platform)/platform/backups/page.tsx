@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { DatabaseZap } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
+import toast from 'react-hot-toast';
 import { PlatformPageFrame } from '@/components/platform/PlatformPageFrame';
 import { DataTable } from '@/components/ui/DataTable';
 import { Badge } from '@/components/ui/Badge';
@@ -11,6 +12,7 @@ import { Modal } from '@/components/ui/Modal';
 import { Select } from '@/components/ui/Input';
 import { usePlatformBackups } from '@/hooks/usePlatform';
 import { platformBackupsApi } from '@/lib/platform-api';
+import { getPlatformApiError } from '@/lib/platform-axios';
 import { formatDate } from '@/lib/utils';
 
 const EMPTY_BACKUP = { scope: 'FULL', frequency: 'ONE_TIME' };
@@ -26,9 +28,12 @@ export default function PlatformBackupsPage() {
     setSaving(true);
     try {
       await platformBackupsApi.create(form);
+      toast.success('Backup job created');
       setCreateOpen(false);
       setForm(EMPTY_BACKUP);
       qc.invalidateQueries({ queryKey: ['platform', 'backups'] });
+    } catch (error) {
+      toast.error(getPlatformApiError(error));
     } finally {
       setSaving(false);
     }
@@ -40,7 +45,7 @@ export default function PlatformBackupsPage() {
       description="Schedule and review full platform or company-wise backups."
       actions={<Button leftIcon={<DatabaseZap className="h-4 w-4" />} onClick={() => setCreateOpen(true)}>Create Backup</Button>}
     >
-      <div className="rounded-2xl border border-slate-200/10 bg-slate-950/70 p-5 shadow-xl">
+      <div className="panel-strong p-5">
         <DataTable
           data={data}
           loading={isLoading}
@@ -51,7 +56,7 @@ export default function PlatformBackupsPage() {
           columns={[
             { key: 'scope', header: 'Scope' },
             { key: 'frequency', header: 'Frequency' },
-            { key: 'status', header: 'Status', render: (value) => <Badge className="bg-slate-800 text-slate-200">{value}</Badge> },
+            { key: 'status', header: 'Status', render: (value) => <Badge>{value}</Badge> },
             { key: 'storageUrl', header: 'Storage URL', render: (value) => value ?? '—' },
             { key: 'createdAt', header: 'Created', render: (value) => formatDate(value) },
           ]}

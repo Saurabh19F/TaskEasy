@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { ReceiptText } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
+import toast from 'react-hot-toast';
 import { PlatformPageFrame } from '@/components/platform/PlatformPageFrame';
 import { StatCard } from '@/components/ui/StatCard';
 import { DataTable } from '@/components/ui/DataTable';
@@ -12,6 +13,7 @@ import { Modal } from '@/components/ui/Modal';
 import { Input, Select } from '@/components/ui/Input';
 import { usePlatformSubscriptions, usePlatformPlans, usePlatformCompanies } from '@/hooks/usePlatform';
 import { platformSubscriptionsApi } from '@/lib/platform-api';
+import { getPlatformApiError } from '@/lib/platform-axios';
 import { formatDate } from '@/lib/utils';
 
 const EMPTY_SUB = { tenantId: '', planId: '', billingCycle: 'MONTHLY' };
@@ -26,12 +28,19 @@ export default function PlatformSubscriptionsPage() {
   const [saving, setSaving] = useState(false);
 
   const handleCreate = async () => {
+    if (!form.tenantId || !form.planId) {
+      toast.error('Company and plan are required');
+      return;
+    }
     setSaving(true);
     try {
       await platformSubscriptionsApi.create(form);
+      toast.success('Subscription created');
       setCreateOpen(false);
       setForm(EMPTY_SUB);
       qc.invalidateQueries({ queryKey: ['platform', 'subscriptions'] });
+    } catch (error) {
+      toast.error(getPlatformApiError(error));
     } finally {
       setSaving(false);
     }
@@ -49,7 +58,7 @@ export default function PlatformSubscriptionsPage() {
         <StatCard label="Expired" value={data.filter((s) => String(s.status) === 'EXPIRED').length} icon={ReceiptText} color="red" />
       </div>
 
-      <div className="rounded-2xl border border-slate-200/10 bg-slate-950/70 p-5 shadow-xl">
+      <div className="panel-strong p-5">
         <DataTable
           data={data}
           loading={isLoading}

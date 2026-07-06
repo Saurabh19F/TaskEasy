@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useQueryClient } from '@tanstack/react-query';
 import { Bell, Command, Eye, EyeOff, LogOut, LockKeyhole, RefreshCw, Search, ShieldCheck, Zap } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -27,14 +28,9 @@ export function PlatformHeader() {
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const qc = useQueryClient();
   const { user } = usePlatformAuthStore();
+  const router = useRouter();
   const { mutate: logout } = usePlatformLogout();
   const { mutateAsync: changePassword, isPending: isChangingPassword } = usePlatformChangePassword();
-
-  useEffect(() => {
-    document.documentElement.classList.remove('dark');
-    document.documentElement.classList.add('light');
-    localStorage.setItem('theme', 'light');
-  }, []);
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -78,10 +74,14 @@ export function PlatformHeader() {
     <>
       <header className="flex h-16 items-center justify-between border-b border-border bg-[rgba(255,255,255,0.88)] px-4 backdrop-blur-xl">
         <div className="flex items-center gap-3">
-          <div className="hidden md:flex md:min-w-[340px] md:items-center md:gap-2 rounded-2xl border border-border bg-surface px-3 py-2 text-sm text-muted-foreground shadow-[0_14px_30px_-22px_rgba(15,23,42,0.12)]">
+          <button
+            onClick={() => setPaletteOpen(true)}
+            className="hidden md:flex md:min-w-[340px] md:items-center md:gap-2 rounded-2xl border border-border bg-surface px-3 py-2 text-sm text-muted-foreground shadow-[0_14px_30px_-22px_rgba(15,23,42,0.12)] transition-colors hover:bg-surface-muted"
+          >
             <Search className="h-4 w-4 text-muted-foreground" />
             <span>Search companies, plans, invoices...</span>
-          </div>
+            <kbd className="ml-auto rounded border border-border bg-surface-muted px-1.5 py-0.5 text-xs text-muted-foreground">⌘K</kbd>
+          </button>
           <Button variant="outline" size="sm" leftIcon={<Command className="h-4 w-4" />} onClick={() => setPaletteOpen(true)}>
             Command
           </Button>
@@ -141,21 +141,28 @@ export function PlatformHeader() {
       >
         <div className="space-y-3">
           {[
-            { label: 'Open Dashboard', href: '/platform/dashboard', tone: 'amber' },
-            { label: 'Manage Companies', href: '/platform/companies', tone: 'orange' },
-            { label: 'Review Billing', href: '/platform/billing', tone: 'rose' },
+            { label: 'Open Dashboard', href: '/platform/dashboard' },
+            { label: 'Manage Companies', href: '/platform/companies' },
+            { label: 'Review Billing', href: '/platform/billing' },
+            { label: 'Plans', href: '/platform/plans' },
+            { label: 'Subscriptions', href: '/platform/subscriptions' },
+            { label: 'Platform Users', href: '/platform/platform-users' },
+            { label: 'Support Tickets', href: '/platform/support-tickets' },
+            { label: 'Security Center', href: '/platform/security-center' },
+            { label: 'Audit Logs', href: '/platform/audit-logs' },
+            { label: 'System Settings', href: '/platform/system-settings' },
           ].map((item) => (
-            <a
+            <button
               key={item.href}
-              href={item.href}
-                className="flex items-center justify-between rounded-2xl border border-border bg-surface px-4 py-3 transition-all hover:-translate-y-0.5 hover:bg-surface-muted"
-              >
-                <div>
-                  <p className="text-sm font-medium text-foreground">{item.label}</p>
-                  <p className="text-xs text-muted-foreground">{item.href}</p>
-                </div>
-                <Zap className="h-4 w-4 text-accent" />
-              </a>
+              onClick={() => { setPaletteOpen(false); router.push(item.href); }}
+              className="flex w-full items-center justify-between rounded-2xl border border-border bg-surface px-4 py-3 text-left transition-all hover:-translate-y-0.5 hover:bg-surface-muted"
+            >
+              <div>
+                <p className="text-sm font-medium text-foreground">{item.label}</p>
+                <p className="text-xs text-muted-foreground">{item.href}</p>
+              </div>
+              <Zap className="h-4 w-4 text-accent" />
+            </button>
           ))}
         </div>
       </Modal>

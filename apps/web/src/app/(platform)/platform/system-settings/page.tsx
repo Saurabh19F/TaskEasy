@@ -3,11 +3,13 @@
 import { useState, useEffect } from 'react';
 import { Settings } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
+import toast from 'react-hot-toast';
 import { PlatformPageFrame } from '@/components/platform/PlatformPageFrame';
 import { Button } from '@/components/ui/Button';
 import { Input, Textarea, Select } from '@/components/ui/Input';
 import { usePlatformSettings } from '@/hooks/usePlatform';
 import { platformSettingsApi } from '@/lib/platform-api';
+import { getPlatformApiError } from '@/lib/platform-axios';
 
 export default function PlatformSystemSettingsPage() {
   const qc = useQueryClient();
@@ -43,7 +45,10 @@ export default function PlatformSystemSettingsPage() {
     setSaving(true);
     try {
       await platformSettingsApi.update(form);
+      toast.success('Settings saved');
       qc.invalidateQueries({ queryKey: ['platform', 'settings'] });
+    } catch (error) {
+      toast.error(getPlatformApiError(error));
     } finally {
       setSaving(false);
     }
@@ -56,8 +61,8 @@ export default function PlatformSystemSettingsPage() {
       actions={<Button leftIcon={<Settings className="h-4 w-4" />} onClick={handleSave} loading={saving}>Save Changes</Button>}
     >
       <div className="grid gap-4 xl:grid-cols-2">
-        <div className="rounded-2xl border border-slate-200/10 bg-slate-950/70 p-5 shadow-xl">
-          <h2 className="text-sm font-semibold text-contrast">Branding</h2>
+        <div className="panel-strong p-5">
+          <h2 className="text-sm font-semibold text-foreground">Branding</h2>
           <div className="mt-4 space-y-4">
             <Input label="Platform Name" value={form['platform.name']} onChange={(e) => setForm((v) => ({ ...v, 'platform.name': e.target.value }))} />
             <Input label="Support Email" value={form['support.email']} onChange={(e) => setForm((v) => ({ ...v, 'support.email': e.target.value }))} />
@@ -65,8 +70,8 @@ export default function PlatformSystemSettingsPage() {
             <Input label="Default Timezone" value={form['platform.timezone']} onChange={(e) => setForm((v) => ({ ...v, 'platform.timezone': e.target.value }))} />
           </div>
         </div>
-        <div className="rounded-2xl border border-slate-200/10 bg-slate-950/70 p-5 shadow-xl">
-          <h2 className="text-sm font-semibold text-contrast">Integrations</h2>
+        <div className="panel-strong p-5">
+          <h2 className="text-sm font-semibold text-foreground">Integrations</h2>
           <div className="mt-4 space-y-4">
             <Select label="Maintenance Mode" value={form['maintenance.mode'] ? 'ON' : 'OFF'} onChange={(e) => setForm((v) => ({ ...v, 'maintenance.mode': e.target.value === 'ON' }))}>
               <option value="OFF">Off</option>

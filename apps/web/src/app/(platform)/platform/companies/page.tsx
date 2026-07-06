@@ -25,6 +25,7 @@ export default function PlatformCompaniesPage() {
   const [createOpen, setCreateOpen] = useState(false);
   const [createdCredentials, setCreatedCredentials] = useState<{ email: string; password: string; companyName: string } | null>(null);
   const [resetCompanyId, setResetCompanyId] = useState<string | null>(null);
+  const [resetResult, setResetResult] = useState<{ email: string; tempPassword: string } | null>(null);
   const [deleteCompany, setDeleteCompany] = useState<{ id: string; companyName: string } | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -54,6 +55,7 @@ export default function PlatformCompaniesPage() {
       if (result?.generatedPassword && result?.adminUser?.email) {
         setCreatedCredentials({ email: result.adminUser.email, password: result.generatedPassword, companyName: result.companyName ?? form.name });
       }
+      toast.success('Company created');
       setCreateOpen(false);
       resetCreateForm();
       qc.invalidateQueries({ queryKey: ['platform', 'companies'] });
@@ -78,7 +80,7 @@ export default function PlatformCompaniesPage() {
         <StatCard label="Suspended Companies" value={counts.suspended} icon={Slash} color="red" />
       </div>
 
-      <div className="rounded-2xl border border-slate-200/10 bg-slate-950/70 p-5 shadow-xl">
+      <div className="panel-strong p-5">
         <DataTable
           data={companies}
           loading={isLoading}
@@ -87,11 +89,11 @@ export default function PlatformCompaniesPage() {
           exportFilename="platform-companies"
           rowKey={(row) => row.id}
           columns={[
-            { key: 'companyName', header: 'Company', sortable: true, render: (value, row) => <Link className="font-medium text-amber-300 hover:underline" href={`/platform/companies/${row.id}`}>{value}</Link> },
+            { key: 'companyName', header: 'Company', sortable: true, render: (value, row) => <Link className="font-medium text-primary hover:underline" href={`/platform/companies/${row.id}`}>{value}</Link> },
             { key: 'ownerName', header: 'Owner', render: (value) => value ?? '—' },
             { key: 'email', header: 'Email', render: (value) => value ?? '—' },
             { key: 'industry', header: 'Industry', render: (value) => value ?? '—' },
-            { key: 'plan', header: 'Plan', render: (value) => <Badge className="bg-slate-800 text-slate-200">{value}</Badge> },
+            { key: 'plan', header: 'Plan', render: (value) => <Badge>{value}</Badge> },
             { key: 'status', header: 'Status', render: (value) => <StatusBadge status={value} /> },
             { key: 'totalUsers', header: 'Users', render: (value) => formatNumber(Number(value ?? 0)) },
             { key: 'totalEmployees', header: 'Employees', render: (value) => formatNumber(Number(value ?? 0)) },
@@ -103,7 +105,7 @@ export default function PlatformCompaniesPage() {
                 <div className="flex flex-wrap gap-2">
                   <Link
                     href={`/platform/companies/${row.id}`}
-                    className="inline-flex items-center justify-center rounded-md border border-slate-600 px-3 py-1.5 text-xs text-slate-300 transition-colors hover:bg-slate-800 hover:text-contrast"
+                    className="inline-flex items-center justify-center rounded-md border border-border px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-surface-muted hover:text-foreground"
                   >
                     View
                   </Link>
@@ -111,17 +113,22 @@ export default function PlatformCompaniesPage() {
                     size="xs"
                     variant="outline"
                     onClick={async () => {
-                      const res = await platformCompaniesApi.impersonate(row.id, 'Support review');
-                      usePlatformAuthStore.getState().setImpersonation({
-                        sessionId: res.sessionId,
-                        companyId: row.id,
-                        companyName: row.companyName,
-                        targetUser: res.targetUser,
-                        banner: res.banner,
-                        accessToken: res.accessToken,
-                        refreshToken: res.refreshToken,
-                      });
-                      qc.invalidateQueries({ queryKey: ['platform', 'company', row.id] });
+                      try {
+                        const res = await platformCompaniesApi.impersonate(row.id, 'Support review');
+                        usePlatformAuthStore.getState().setImpersonation({
+                          sessionId: res.sessionId,
+                          companyId: row.id,
+                          companyName: row.companyName,
+                          targetUser: res.targetUser,
+                          banner: res.banner,
+                          accessToken: res.accessToken,
+                          refreshToken: res.refreshToken,
+                        });
+                        toast.success(`Now impersonating ${row.companyName}`);
+                        qc.invalidateQueries({ queryKey: ['platform', 'company', row.id] });
+                      } catch (error) {
+                        toast.error(getPlatformApiError(error));
+                      }
                     }}
                   >
                     Impersonate
@@ -181,11 +188,47 @@ export default function PlatformCompaniesPage() {
         confirmLabel="Reset Password"
         onConfirm={async () => {
           if (!resetCompanyId) return;
-          await platformCompaniesApi.resetAdminPassword(resetCompanyId);
+          try {
+            const result = await platformCompaniesApi.resetAdminPassword(resetCompanyId);
+            setResetResult({ email: companies.find((c) => c.id === resetCompanyId)?.email ?? 'admin', tempPassword: result.tempPassword });
+            toast.success('Password reset successfully');
+          } catch (error) {
+            toast.error(getPlatformApiError(error));
+          }
           setResetCompanyId(null);
           qc.invalidateQueries({ queryKey: ['platform', 'companies'] });
         }}
       />
+
+      <Modal open={!!resetResult} onClose={() => setResetResult(null)} title="Password Reset Complete" size="md" footer={
+        <Button onClick={() => setResetResult(null)}>Done</Button>
+      }>
+        {resetResult && (
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">Share this temporary password with the company admin. They must change it on first login.</p>
+            <div className="rounded-xl border border-border bg-surface-muted p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs text-muted-foreground">Email</p>
+                  <p className="text-sm font-medium text-foreground">{resetResult.email}</p>
+                </div>
+                <button onClick={() => navigator.clipboard.writeText(resetResult.email)} className="text-muted-foreground hover:text-foreground transition-colors" title="Copy email">
+                  <Copy className="h-4 w-4" />
+                </button>
+              </div>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs text-muted-foreground">Temporary Password</p>
+                  <p className="text-sm font-mono font-medium text-warning-foreground">{resetResult.tempPassword}</p>
+                </div>
+                <button onClick={() => navigator.clipboard.writeText(resetResult.tempPassword)} className="text-muted-foreground hover:text-foreground transition-colors" title="Copy password">
+                  <Copy className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </Modal>
 
       <ConfirmModal
         open={!!deleteCompany}
@@ -221,30 +264,30 @@ export default function PlatformCompaniesPage() {
       }>
         {createdCredentials && (
           <div className="space-y-4">
-            <p className="text-sm text-slate-300">
-              <strong className="text-white">{createdCredentials.companyName}</strong> has been created. Share these login credentials with the company admin:
+            <p className="text-sm text-muted-foreground">
+              <strong className="text-foreground">{createdCredentials.companyName}</strong> has been created. Share these login credentials with the company admin:
             </p>
-            <div className="rounded-xl border border-slate-700 bg-slate-900/80 p-4 space-y-3">
+            <div className="rounded-xl border border-border bg-surface-muted p-4 space-y-3">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs text-slate-500">Email</p>
-                  <p className="text-sm font-medium text-white">{createdCredentials.email}</p>
+                  <p className="text-xs text-muted-foreground">Email</p>
+                  <p className="text-sm font-medium text-foreground">{createdCredentials.email}</p>
                 </div>
-                <button onClick={() => navigator.clipboard.writeText(createdCredentials.email)} className="text-slate-400 hover:text-white transition-colors" title="Copy email">
+                <button onClick={() => navigator.clipboard.writeText(createdCredentials.email)} className="text-muted-foreground hover:text-foreground transition-colors" title="Copy email">
                   <Copy className="h-4 w-4" />
                 </button>
               </div>
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs text-slate-500">Password</p>
-                  <p className="text-sm font-mono font-medium text-amber-300">{createdCredentials.password}</p>
+                  <p className="text-xs text-muted-foreground">Password</p>
+                  <p className="text-sm font-mono font-medium text-warning-foreground">{createdCredentials.password}</p>
                 </div>
-                <button onClick={() => navigator.clipboard.writeText(createdCredentials.password)} className="text-slate-400 hover:text-white transition-colors" title="Copy password">
+                <button onClick={() => navigator.clipboard.writeText(createdCredentials.password)} className="text-muted-foreground hover:text-foreground transition-colors" title="Copy password">
                   <Copy className="h-4 w-4" />
                 </button>
               </div>
             </div>
-            <p className="text-xs text-amber-400/80">
+            <p className="text-xs text-warning-foreground">
               Save these credentials now. The password cannot be retrieved later.
             </p>
           </div>

@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { LifeBuoy } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
+import toast from 'react-hot-toast';
 import { PlatformPageFrame } from '@/components/platform/PlatformPageFrame';
 import { StatCard } from '@/components/ui/StatCard';
 import { DataTable } from '@/components/ui/DataTable';
@@ -12,6 +13,7 @@ import { Modal } from '@/components/ui/Modal';
 import { Input, Select, Textarea } from '@/components/ui/Input';
 import { usePlatformTickets, usePlatformCompanies } from '@/hooks/usePlatform';
 import { platformSupportApi } from '@/lib/platform-api';
+import { getPlatformApiError } from '@/lib/platform-axios';
 import { formatDate } from '@/lib/utils';
 
 const EMPTY_TICKET = { tenantId: '', subject: '', description: '', category: 'GENERAL', priority: 'MEDIUM' };
@@ -27,12 +29,19 @@ export default function PlatformSupportTicketsPage() {
   const [saving, setSaving] = useState(false);
 
   const handleCreate = async () => {
+    if (!form.subject.trim()) {
+      toast.error('Subject is required');
+      return;
+    }
     setSaving(true);
     try {
       await platformSupportApi.tickets.create(form);
+      toast.success('Ticket created');
       setCreateOpen(false);
       setForm(EMPTY_TICKET);
       qc.invalidateQueries({ queryKey: ['platform', 'tickets'] });
+    } catch (error) {
+      toast.error(getPlatformApiError(error));
     } finally {
       setSaving(false);
     }
@@ -52,7 +61,7 @@ export default function PlatformSupportTicketsPage() {
         <StatCard label="Closed" value={stats.closed ?? 0} icon={LifeBuoy} color="indigo" />
       </div>
 
-      <div className="rounded-2xl border border-slate-200/10 bg-slate-950/70 p-5 shadow-xl">
+      <div className="panel-strong p-5">
         <DataTable
           data={tickets}
           loading={isLoading}

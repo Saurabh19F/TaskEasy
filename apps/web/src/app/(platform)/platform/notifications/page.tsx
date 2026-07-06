@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { BellRing } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
+import toast from 'react-hot-toast';
 import { PlatformPageFrame } from '@/components/platform/PlatformPageFrame';
 import { DataTable } from '@/components/ui/DataTable';
 import { Badge } from '@/components/ui/Badge';
@@ -11,6 +12,7 @@ import { Modal } from '@/components/ui/Modal';
 import { Input, Select, Textarea } from '@/components/ui/Input';
 import { usePlatformNotifications } from '@/hooks/usePlatform';
 import { platformNotificationsApi } from '@/lib/platform-api';
+import { getPlatformApiError } from '@/lib/platform-axios';
 import { formatDate } from '@/lib/utils';
 
 const EMPTY_NOTIF = { title: '', message: '', audience: 'ALL', type: 'INFO', channel: 'IN_APP' };
@@ -23,12 +25,19 @@ export default function PlatformNotificationsPage() {
   const [saving, setSaving] = useState(false);
 
   const handleSend = async () => {
+    if (!form.title.trim() || !form.message.trim()) {
+      toast.error('Title and message are required');
+      return;
+    }
     setSaving(true);
     try {
       await platformNotificationsApi.send(form);
+      toast.success('Notification sent');
       setCreateOpen(false);
       setForm(EMPTY_NOTIF);
       qc.invalidateQueries({ queryKey: ['platform', 'notifications'] });
+    } catch (error) {
+      toast.error(getPlatformApiError(error));
     } finally {
       setSaving(false);
     }
@@ -40,7 +49,7 @@ export default function PlatformNotificationsPage() {
       description="Broadcast system updates, payment reminders, and security announcements."
       actions={<Button leftIcon={<BellRing className="h-4 w-4" />} onClick={() => setCreateOpen(true)}>Send Notification</Button>}
     >
-      <div className="rounded-2xl border border-slate-200/10 bg-slate-950/70 p-5 shadow-xl">
+      <div className="panel-strong p-5">
         <DataTable
           data={data}
           loading={isLoading}
@@ -52,8 +61,8 @@ export default function PlatformNotificationsPage() {
             { key: 'title', header: 'Title', sortable: true },
             { key: 'audience', header: 'Audience' },
             { key: 'type', header: 'Type' },
-            { key: 'channel', header: 'Channel', render: (value) => <Badge className="bg-slate-800 text-slate-200">{value}</Badge> },
-            { key: 'status', header: 'Status', render: (value) => <Badge className="bg-emerald-500/10 text-emerald-300">{value}</Badge> },
+            { key: 'channel', header: 'Channel', render: (value) => <Badge>{value}</Badge> },
+            { key: 'status', header: 'Status', render: (value) => <Badge className="bg-success/15 text-success-foreground">{value}</Badge> },
             { key: 'createdAt', header: 'Created', render: (value) => formatDate(value) },
           ]}
         />

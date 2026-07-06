@@ -4,6 +4,18 @@ import { Request, Response } from 'express';
 import { Public } from '../../common/decorators/public.decorator';
 import { SsoService } from './sso.service';
 
+const isProduction = process.env.NODE_ENV === 'production';
+
+function refreshCookieOptions() {
+  return {
+    httpOnly: true,
+    secure: isProduction,
+    sameSite: isProduction ? ('none' as const) : ('lax' as const),
+    path: '/',
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+  };
+}
+
 @ApiTags('auth')
 @Controller('auth/sso')
 export class SsoController {
@@ -46,12 +58,7 @@ export class SsoController {
       userAgent,
     );
 
-    res.cookie('refreshToken', session.refreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-    });
+    res.cookie('refreshToken', session.refreshToken, refreshCookieOptions());
 
     return res.redirect(`${process.env.FRONTEND_URL ?? 'http://localhost:3000'}${returnTo}`);
   }

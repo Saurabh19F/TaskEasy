@@ -20,6 +20,18 @@ import { CurrentPlatformUser, PlatformJwtPayload } from '../../common/decorators
 import { PlatformJwtAuthGuard } from '../../common/guards/platform-jwt-auth.guard';
 import { PlatformAuthService } from './platform-auth.service';
 
+const isProduction = process.env.NODE_ENV === 'production';
+
+function platformRefreshCookieOptions() {
+  return {
+    httpOnly: true,
+    secure: isProduction,
+    sameSite: isProduction ? ('none' as const) : ('lax' as const),
+    path: '/',
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+  };
+}
+
 @ApiTags('platform-auth')
 @SkipJwtGuard()
 @UseGuards(PlatformJwtAuthGuard)
@@ -44,13 +56,7 @@ export class PlatformAuthController {
     const userAgent = req.headers['user-agent'] || '';
     const result = await this.platformAuthService.login(dto, ipAddress, userAgent);
 
-    res.cookie('platformRefreshToken', result.refreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      path: '/',
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-    });
+    res.cookie('platformRefreshToken', result.refreshToken, platformRefreshCookieOptions());
 
     return {
       accessToken: result.accessToken,
@@ -85,13 +91,7 @@ export class PlatformAuthController {
     }
     const result = await this.platformAuthService.refresh(decoded.sub, rawRefreshToken);
 
-    res.cookie('platformRefreshToken', result.refreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      path: '/',
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-    });
+    res.cookie('platformRefreshToken', result.refreshToken, platformRefreshCookieOptions());
 
     return { accessToken: result.accessToken };
   }

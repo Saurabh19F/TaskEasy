@@ -30,6 +30,18 @@ import {
 import { CurrentUser, JwtPayload } from '../../common/decorators/current-user.decorator';
 import { Public } from '../../common/decorators/public.decorator';
 
+const isProduction = process.env.NODE_ENV === 'production';
+
+function refreshCookieOptions() {
+  return {
+    httpOnly: true,
+    secure: isProduction,
+    sameSite: isProduction ? ('none' as const) : ('lax' as const),
+    path: '/',
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+  };
+}
+
 @ApiTags('auth')
 @Controller('auth')
 export class AuthController {
@@ -53,12 +65,7 @@ export class AuthController {
     const userAgent = req.headers['user-agent'] || '';
     const result = await this.authService.login(dto, ipAddress, userAgent);
 
-    res.cookie('refreshToken', result.refreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-    });
+    res.cookie('refreshToken', result.refreshToken, refreshCookieOptions());
 
     return {
       accessToken: result.accessToken,
@@ -97,12 +104,7 @@ export class AuthController {
       rawRefreshToken,
     );
 
-    res.cookie('refreshToken', result.refreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-    });
+    res.cookie('refreshToken', result.refreshToken, refreshCookieOptions());
 
     return { accessToken: result.accessToken };
   }
@@ -135,7 +137,7 @@ export class AuthController {
     @Res({ passthrough: true }) res: Response,
   ) {
     const rawRefreshToken = req.cookies?.refreshToken;
-    res.clearCookie('refreshToken');
+    res.clearCookie('refreshToken', { path: '/' });
     return this.authService.logout(user.sub, rawRefreshToken);
   }
 
@@ -147,7 +149,7 @@ export class AuthController {
     @CurrentUser() user: JwtPayload,
     @Res({ passthrough: true }) res: Response,
   ) {
-    res.clearCookie('refreshToken');
+    res.clearCookie('refreshToken', { path: '/' });
     return this.authService.logoutAll(user.sub);
   }
 

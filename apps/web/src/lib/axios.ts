@@ -3,6 +3,21 @@ import { useAuthStore } from '@/store/auth.store';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
 
+type RetryAwareConfig = InternalAxiosRequestConfig & {
+  _retry?: boolean;
+  skipAuthRefresh?: boolean;
+};
+
+function shouldSkipAuthRefresh(config: RetryAwareConfig, requestUrl: string) {
+  const headerValue = (config.headers as any)?.['x-skip-auth-refresh'] ??
+    (config.headers as any)?.get?.('x-skip-auth-refresh');
+  return (
+    String(headerValue) === '1' ||
+    config.skipAuthRefresh === true ||
+    shouldSkipRefreshRetry(requestUrl)
+  );
+}
+
 export const api: AxiosInstance = axios.create({
   baseURL: API_URL,
   withCredentials: true, // sends httpOnly refresh token cookie automatically
@@ -24,14 +39,25 @@ api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
 let isRefreshing = false;
 let refreshQueue: Array<{ resolve: (v: string) => void; reject: (e: any) => void }> = [];
 
+function shouldSkipRefreshRetry(requestUrl: string) {
+  return (
+    requestUrl.includes('auth/login') ||
+    requestUrl.includes('auth/refresh') ||
+    requestUrl.includes('auth/forgot-password') ||
+    requestUrl.includes('auth/reset-password') ||
+    requestUrl.includes('auth/sso/')
+  );
+}
+
 api.interceptors.response.use(
   (res) => res,
   async (error: AxiosError) => {
-    const original = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
+    const original = error.config as RetryAwareConfig;
     const requestUrl = original?.url ?? '';
 
-    // Never try to refresh while handling the refresh endpoint itself.
-    if (requestUrl.includes('/auth/refresh')) {
+    // Never try to refresh on public auth endpoints. A failed login should
+    // surface the real credential error, not cascade into a refresh call.
+    if (shouldSkipAuthRefresh(original, requestUrl)) {
       return Promise.reject(error);
     }
 

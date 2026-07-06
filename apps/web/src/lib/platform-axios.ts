@@ -3,6 +3,21 @@ import { usePlatformAuthStore } from '@/store/platform-auth.store';
 
 const PLATFORM_API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
 
+type RetryAwareConfig = InternalAxiosRequestConfig & {
+  _retry?: boolean;
+  skipAuthRefresh?: boolean;
+};
+
+function shouldSkipPlatformAuthRefresh(config: RetryAwareConfig, requestUrl: string) {
+  const headerValue = (config.headers as any)?.['x-skip-auth-refresh'] ??
+    (config.headers as any)?.get?.('x-skip-auth-refresh');
+  return (
+    String(headerValue) === '1' ||
+    config.skipAuthRefresh === true ||
+    shouldSkipPlatformRefreshRetry(requestUrl)
+  );
+}
+
 export const platformApiClient: AxiosInstance = axios.create({
   baseURL: PLATFORM_API_URL,
   withCredentials: true,
@@ -20,13 +35,21 @@ platformApiClient.interceptors.request.use((config: InternalAxiosRequestConfig) 
 let refreshing = false;
 let queue: Array<{ resolve: (v: string) => void; reject: (e: any) => void }> = [];
 
+function shouldSkipPlatformRefreshRetry(requestUrl: string) {
+  return (
+    requestUrl.includes('platform/auth/login') ||
+    requestUrl.includes('platform/auth/refresh') ||
+    requestUrl.includes('platform/auth/change-password')
+  );
+}
+
 platformApiClient.interceptors.response.use(
   (res) => res,
   async (error: AxiosError) => {
-    const original = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
+    const original = error.config as RetryAwareConfig;
     const requestUrl = original?.url ?? '';
 
-    if (requestUrl.includes('/platform/auth/refresh')) {
+    if (shouldSkipPlatformAuthRefresh(original, requestUrl)) {
       return Promise.reject(error);
     }
 

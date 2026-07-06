@@ -1,4 +1,4 @@
-import { apiGet, apiPost, apiPut, apiPatch, apiDelete, apiUpload } from './axios';
+import { api, apiGet, apiPost, apiPut, apiPatch, apiDelete, apiUpload } from './axios';
 import type {
   AuthUser, User, Project, DelegationTask,
   WorkRequest, ChecklistTask, FmsStep, DashboardData,
@@ -21,8 +21,11 @@ export interface DrilldownRow {
 // ─── Auth ──────────────────────────────────────────────────────────────────────
 
 export const authApi = {
-  login: (email: string, password: string, totpCode?: string) =>
-    apiPost<{ accessToken: string; user: AuthUser }>('/auth/login', { email, password, totpCode }),
+  login: async (email: string, password: string, totpCode?: string): Promise<{ accessToken: string; user: AuthUser }> =>
+    api.post<{ success: true; data: { accessToken: string; user: AuthUser } }>('/auth/login', { email, password, totpCode }, {
+      skipAuthRefresh: true,
+      headers: { 'x-skip-auth-refresh': '1' },
+    } as any).then((res) => res.data.data),
 
   logout: () => apiPost<void>('/auth/logout'),
 

@@ -1,4 +1,4 @@
-import { platformDelete, platformGet, platformPatch, platformPost } from './platform-axios';
+import { platformApiClient, platformDelete, platformGet, platformPatch, platformPost } from './platform-axios';
 import type {
   PlatformAuthUser,
   PlatformBackupJob,
@@ -18,8 +18,11 @@ import type {
 } from '@/types';
 
 export const platformAuthApi = {
-  login: (email: string, password: string, totpCode?: string) =>
-    platformPost<{ accessToken: string; user: PlatformAuthUser }>('/platform/auth/login', { email, password, totpCode }),
+  login: async (email: string, password: string, totpCode?: string): Promise<{ accessToken: string; user: PlatformAuthUser }> =>
+    platformApiClient.post<{ success: true; data: { accessToken: string; user: PlatformAuthUser } }>('/platform/auth/login', { email, password, totpCode }, {
+      skipAuthRefresh: true,
+      headers: { 'x-skip-auth-refresh': '1' },
+    } as any).then((res) => res.data.data),
   refresh: () => platformPost<{ accessToken: string }>('/platform/auth/refresh'),
   logout: () => platformPost<void>('/platform/auth/logout'),
   logoutAll: () => platformPost<void>('/platform/auth/logout-all'),

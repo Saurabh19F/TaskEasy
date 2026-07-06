@@ -17,6 +17,7 @@ interface NavItem {
   label: string;
   href: string;
   icon: React.FC<{ className?: string }>;
+  color: string;
   roles?: string[];
   countKey?: keyof import('@/types').NotificationCounts;
 }
@@ -30,36 +31,36 @@ const NAV_GROUPS: NavGroup[] = [
   {
     label: 'Main',
     items: [
-      { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-      { label: 'Delegation', href: '/delegation', icon: ClipboardList, countKey: 'delegation' },
-      { label: 'Kanban', href: '/kanban', icon: Kanban },
-      { label: 'Work Requests', href: '/work-requests', icon: Briefcase, countKey: 'workRequest' },
-      { label: 'Checklists', href: '/checklist', icon: CheckSquare, countKey: 'checklist' },
-      { label: 'FMS System', href: '/fms', icon: GitBranch, countKey: 'fms' },
+      { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, color: 'text-blue-500' },
+      { label: 'Delegation', href: '/delegation', icon: ClipboardList, color: 'text-violet-500', countKey: 'delegation' },
+      { label: 'Kanban', href: '/kanban', icon: Kanban, color: 'text-sky-500' },
+      { label: 'Work Requests', href: '/work-requests', icon: Briefcase, color: 'text-amber-500', countKey: 'workRequest' },
+      { label: 'Checklists', href: '/checklist', icon: CheckSquare, color: 'text-emerald-500', countKey: 'checklist' },
+      { label: 'FMS System', href: '/fms', icon: GitBranch, color: 'text-pink-500', countKey: 'fms' },
     ],
   },
   {
     label: 'Analytics',
     items: [
-      { label: 'Approve / Review', href: '/approvals', icon: CheckCircle, roles: ['ADMIN', 'MANAGER', 'TEAM_LEAD', 'EMPLOYEE', 'VIEWER'], countKey: 'approval' },
-      { label: 'MIS', href: '/mis', icon: BarChart3, roles: ['ADMIN', 'MANAGER'] },
-      { label: 'Predictive AI', href: '/predictive', icon: TrendingUp, roles: ['ADMIN', 'MANAGER'] },
-      { label: 'Reports', href: '/reports', icon: FileText, roles: ['ADMIN', 'MANAGER'] },
-      { label: 'Notifications', href: '/notifications', icon: Bell },
-      { label: 'Calendar', href: '/calendar', icon: CalendarDays },
+      { label: 'Approve / Review', href: '/approvals', icon: CheckCircle, color: 'text-green-500', roles: ['ADMIN', 'MANAGER', 'TEAM_LEAD', 'EMPLOYEE', 'VIEWER'], countKey: 'approval' },
+      { label: 'MIS', href: '/mis', icon: BarChart3, color: 'text-teal-500', roles: ['ADMIN', 'MANAGER'] },
+      { label: 'Predictive AI', href: '/predictive', icon: TrendingUp, color: 'text-cyan-500', roles: ['ADMIN', 'MANAGER'] },
+      { label: 'Reports', href: '/reports', icon: FileText, color: 'text-orange-500', roles: ['ADMIN', 'MANAGER'] },
+      { label: 'Notifications', href: '/notifications', icon: Bell, color: 'text-yellow-500' },
+      { label: 'Calendar', href: '/calendar', icon: CalendarDays, color: 'text-rose-500' },
     ],
   },
   {
     label: 'Administration',
     items: [
-      { label: 'Projects', href: '/projects', icon: FolderKanban, roles: ['ADMIN', 'MANAGER'] },
-      { label: 'Users', href: '/users', icon: Users, roles: ['ADMIN'] },
-      { label: 'Automation', href: '/automation', icon: Zap, roles: ['ADMIN'] },
-      { label: 'Import / Export', href: '/import-export', icon: FileSpreadsheet, roles: ['ADMIN'] },
-      { label: 'Audit Logs', href: '/audit-logs', icon: Shield, roles: ['ADMIN', 'AUDITOR'] },
-      { label: 'Set Hierarchy', href: '/hierarchy', icon: Users, roles: ['ADMIN'] },
-      { label: 'Settings', href: '/settings', icon: Settings, roles: ['ADMIN'] },
-      { label: 'Admin Panel', href: '/admin', icon: Settings, roles: ['ADMIN'] },
+      { label: 'Projects', href: '/projects', icon: FolderKanban, color: 'text-indigo-500', roles: ['ADMIN', 'MANAGER'] },
+      { label: 'Users', href: '/users', icon: Users, color: 'text-purple-500', roles: ['ADMIN'] },
+      { label: 'Automation', href: '/automation', icon: Zap, color: 'text-amber-400', roles: ['ADMIN'] },
+      { label: 'Import / Export', href: '/import-export', icon: FileSpreadsheet, color: 'text-lime-500', roles: ['ADMIN'] },
+      { label: 'Audit Logs', href: '/audit-logs', icon: Shield, color: 'text-red-500', roles: ['ADMIN', 'AUDITOR'] },
+      { label: 'Set Hierarchy', href: '/hierarchy', icon: Users, color: 'text-fuchsia-500', roles: ['ADMIN'] },
+      { label: 'Settings', href: '/settings', icon: Settings, color: 'text-slate-500', roles: ['ADMIN'] },
+      { label: 'Admin Panel', href: '/admin', icon: Settings, color: 'text-zinc-500', roles: ['ADMIN'] },
     ],
   },
 ];
@@ -186,7 +187,7 @@ export function Sidebar({ collapsed = false, mobileOpen = false, onMobileClose }
                       <div className="relative flex-shrink-0">
                         <Icon className={cn(
                           'h-[18px] w-[18px]',
-                          isActive ? 'text-contrast' : 'text-slate-400 group-hover:text-slate-600',
+                          isActive ? 'text-contrast' : item.color,
                         )} />
                         {count > 0 && (
                           <span

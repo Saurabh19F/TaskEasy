@@ -26,24 +26,25 @@ type NavItem = {
   label: string;
   href: string;
   icon: React.FC<{ className?: string }>;
+  color: string;
 };
 
 const NAV_ITEMS: NavItem[] = [
-  { label: 'Dashboard', href: '/platform/dashboard', icon: LayoutDashboard },
-  { label: 'Companies', href: '/platform/companies', icon: Building2 },
-  { label: 'Plans', href: '/platform/plans', icon: Layers3 },
-  { label: 'Subscriptions', href: '/platform/subscriptions', icon: ReceiptText },
-  { label: 'Billing', href: '/platform/billing', icon: ReceiptText },
-  { label: 'Feature Control', href: '/platform/feature-control', icon: ToggleLeft },
-  { label: 'Platform Users', href: '/platform/platform-users', icon: Users2 },
-  { label: 'Roles & Permissions', href: '/platform/roles-permissions', icon: ShieldCheck },
-  { label: 'Support Tickets', href: '/platform/support-tickets', icon: LifeBuoy },
-  { label: 'Audit Logs', href: '/platform/audit-logs', icon: ScrollText },
-  { label: 'Notifications', href: '/platform/notifications', icon: BellRing },
-  { label: 'Reports', href: '/platform/reports', icon: BarChart3 },
-  { label: 'Security Center', href: '/platform/security-center', icon: ShieldAlert },
-  { label: 'Backups', href: '/platform/backups', icon: DatabaseZap },
-  { label: 'System Settings', href: '/platform/system-settings', icon: Settings },
+  { label: 'Dashboard', href: '/platform/dashboard', icon: LayoutDashboard, color: 'text-blue-400' },
+  { label: 'Companies', href: '/platform/companies', icon: Building2, color: 'text-violet-400' },
+  { label: 'Plans', href: '/platform/plans', icon: Layers3, color: 'text-amber-400' },
+  { label: 'Subscriptions', href: '/platform/subscriptions', icon: ReceiptText, color: 'text-emerald-400' },
+  { label: 'Billing', href: '/platform/billing', icon: ReceiptText, color: 'text-green-400' },
+  { label: 'Feature Control', href: '/platform/feature-control', icon: ToggleLeft, color: 'text-cyan-400' },
+  { label: 'Platform Users', href: '/platform/platform-users', icon: Users2, color: 'text-sky-400' },
+  { label: 'Roles & Permissions', href: '/platform/roles-permissions', icon: ShieldCheck, color: 'text-indigo-400' },
+  { label: 'Support Tickets', href: '/platform/support-tickets', icon: LifeBuoy, color: 'text-rose-400' },
+  { label: 'Audit Logs', href: '/platform/audit-logs', icon: ScrollText, color: 'text-orange-400' },
+  { label: 'Notifications', href: '/platform/notifications', icon: BellRing, color: 'text-yellow-400' },
+  { label: 'Reports', href: '/platform/reports', icon: BarChart3, color: 'text-teal-400' },
+  { label: 'Security Center', href: '/platform/security-center', icon: ShieldAlert, color: 'text-red-400' },
+  { label: 'Backups', href: '/platform/backups', icon: DatabaseZap, color: 'text-purple-400' },
+  { label: 'System Settings', href: '/platform/system-settings', icon: Settings, color: 'text-slate-400' },
 ];
 
 export function PlatformSidebar() {
@@ -87,7 +88,7 @@ export function PlatformSidebar() {
                     : 'text-contrast-65 hover:bg-[rgba(255,255,255,0.1)] hover:text-contrast',
                 )}
               >
-                <Icon className={cn('h-4 w-4 flex-shrink-0', active ? 'text-contrast' : 'text-contrast-55 group-hover:text-contrast')} />
+                <Icon className={cn('h-4 w-4 flex-shrink-0 transition-colors', item.color)} />
                 <span className="flex-1">{item.label}</span>
               </Link>
             );

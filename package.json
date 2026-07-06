@@ -15,7 +15,6 @@
     "db:cleanup-duplicates": "node apps/api/scripts/cleanup-duplicate-seed-data.js",
     "db:push": "cd apps/api && npx prisma db push",
     "db:studio": "cd apps/api && npx prisma studio",
-    "postinstall": "npm run prisma:generate --workspace apps/api",
     "prisma:generate": "cd apps/api && npx prisma generate --schema ../../prisma/schema.prisma",
     "install:all": "npm install --workspaces",
     "typecheck": "cd apps/api && tsc --noEmit && cd ../web && tsc --noEmit"

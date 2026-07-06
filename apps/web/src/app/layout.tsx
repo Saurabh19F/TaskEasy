@@ -34,6 +34,9 @@ export const metadata: Metadata = {
     statusBarStyle: 'black-translucent',
     title: 'TaskEasy',
   },
+  other: {
+    'mobile-web-app-capable': 'yes',
+  },
   icons: {
     icon: '/favicon.ico',
     apple: '/icons/icon-192x192.png',

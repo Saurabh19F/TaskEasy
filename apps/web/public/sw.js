@@ -11,9 +11,9 @@
  * Fetch: route by request type.
  */
 
-const CACHE_NAME = 'taskeasy-v1';
-const STATIC_CACHE = 'taskeasy-static-v1';
-const API_CACHE = 'taskeasy-api-v1';
+const CACHE_NAME = 'taskeasy-v2';
+const STATIC_CACHE = 'taskeasy-static-v2';
+const API_CACHE = 'taskeasy-api-v2';
 
 const APP_SHELL = [
   '/',
@@ -26,7 +26,21 @@ const APP_SHELL = [
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(STATIC_CACHE).then((cache) => cache.addAll(APP_SHELL))
+    caches.open(STATIC_CACHE).then(async (cache) => {
+      await Promise.allSettled(
+        APP_SHELL.map(async (url) => {
+          try {
+            const response = await fetch(url, { cache: 'no-cache' });
+            if (response.ok) {
+              await cache.put(url, response.clone());
+            }
+          } catch {
+            // Ignore shell assets that are temporarily unavailable so the SW
+            // can still install and update other cached entries.
+          }
+        }),
+      );
+    })
   );
   self.skipWaiting();
 });

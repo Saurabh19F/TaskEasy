@@ -28,6 +28,7 @@ import { usePlatformAuthStore } from '@/store/platform-auth.store';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { cn } from '@/lib/utils';
+import { getApiBaseUrl } from '@/lib/runtime-config';
 
 const schema = z.object({
   email: z.string().email('Invalid email address'),
@@ -83,7 +84,7 @@ export default function LoginPage() {
   } = useForm<FormValues>({ resolver: zodResolver(schema) });
   const { onBlur: emailOnBlur, ...emailInputProps } = register('email');
   const { onBlur: passwordOnBlur, ...passwordInputProps } = register('password');
-  const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+  const apiBase = getApiBaseUrl();
 
   const { mutate: loginMutate, isPending } = useLogin();
   const { mutate: platformLoginMutate, isPending: isPlatformPending } = usePlatformLogin();

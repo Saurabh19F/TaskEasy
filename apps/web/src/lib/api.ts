@@ -1,4 +1,5 @@
 import { api, apiGet, apiPost, apiPut, apiPatch, apiDelete, apiUpload } from './axios';
+import { getApiBaseUrl } from './runtime-config';
 import type {
   AuthUser, User, Project, DelegationTask,
   WorkRequest, ChecklistTask, FmsStep, DashboardData,
@@ -576,7 +577,7 @@ export interface ImportBatchSummary {
   uploadedBy: { id: string; fullName: string; email: string };
 }
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? '';
+const API_BASE = getApiBaseUrl();
 
 export const bulkImportApi = {
   listModules: () => apiGet<ImportModuleInfo[]>('/bulk-import/modules'),

@@ -4,8 +4,9 @@ import { useEffect, useRef, useState, useLayoutEffect } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { useAuthStore } from '@/store/auth.store';
 import { useNotificationStore, WsNotification } from '@/store/notification.store';
+import { getWsBaseUrl } from '@/lib/runtime-config';
 
-const WS_URL = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') ?? 'http://localhost:5000';
+const WS_URL = getWsBaseUrl();
 
 // FE-05 fix: module-level singleton, BUT we check token staleness before reusing it.
 // On token refresh the old socket is disconnected and a new one is created with the new token.

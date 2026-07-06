@@ -29,7 +29,7 @@ export class PlatformService {
     const safe = async (fn: () => Promise<any[]>): Promise<any[]> => { try { return await fn(); } catch { return []; } };
     const [
       tenants,
-      users,
+      companyUsers,
       subscriptions,
       invoices,
       payments,
@@ -42,7 +42,9 @@ export class PlatformService {
       settings,
     ] = await Promise.all([
       prisma.tenant.findMany({ orderBy: { createdAt: 'desc' }, take: 1000 }),
-      prisma.user.findMany({ select: { id: true, tenantId: true, role: true, lastLoginAt: true, status: true }, take: 10000 }),
+      this.listCompanyUsers({
+        fields: ['id', 'tenantId', 'role', 'lastLoginAt', 'status'],
+      }),
       safe(() => prisma.subscription.findMany({ include: { plan: true } })),
       safe(() => prisma.invoice.findMany({ orderBy: { createdAt: 'desc' } })),
       safe(() => prisma.payment.findMany({ orderBy: { createdAt: 'desc' } })),
@@ -61,7 +63,7 @@ export class PlatformService {
     const expiredCompanies = tenants.filter((t: any) => this.getCompanyStatus(t) === 'EXPIRED').length;
     const paymentPendingCompanies = tenants.filter((t: any) => this.getCompanyStatus(t) === 'PAYMENT_PENDING').length;
 
-    const totalEmployees = users.length;
+    const totalEmployees = companyUsers.length;
     const totalPlatformUsers = platformUsers.length;
     const openSupportTickets = tickets.filter((t: any) => !['RESOLVED', 'CLOSED'].includes(String(t.status))).length;
     const pendingPayments = invoices.filter((i: any) => String(i.paymentStatus) === 'PENDING').length;
@@ -99,7 +101,7 @@ export class PlatformService {
     );
 
     const loginActivity = this.groupByMonth(
-      users.filter((u: any) => u.lastLoginAt),
+      companyUsers.filter((u: any) => u.lastLoginAt),
       (row: any) => row.lastLoginAt,
       () => 1,
     );
@@ -107,7 +109,7 @@ export class PlatformService {
     const churnRiskCompanies = tenants
       .filter((t: any) => ['SUSPENDED', 'EXPIRED', 'PAYMENT_PENDING'].includes(this.getCompanyStatus(t)))
       .slice(0, 8)
-      .map((tenant: any) => this.serializeCompany(tenant, subscriptions, users));
+      .map((tenant: any) => this.serializeCompany(tenant, subscriptions, companyUsers));
 
     return {
       stats: {
@@ -136,7 +138,7 @@ export class PlatformService {
         churnRiskCompanies,
       },
       tables: {
-        recentlyOnboardedCompanies: tenants.slice(0, 10).map((tenant: any) => this.serializeCompany(tenant, subscriptions, users)),
+        recentlyOnboardedCompanies: tenants.slice(0, 10).map((tenant: any) => this.serializeCompany(tenant, subscriptions, companyUsers)),
         recentlyExpiredSubscriptions: subscriptions
           .filter((sub: any) => String(sub.status).toUpperCase() === 'EXPIRED')
           .slice(0, 10)
@@ -150,9 +152,11 @@ export class PlatformService {
   async listCompanies(query: MaybeRecord = {}) {
     const prisma = this.prisma as any;
     const safe = async (fn: () => Promise<any[]>): Promise<any[]> => { try { return await fn(); } catch { return []; } };
-    const [tenants, users, subscriptions, flags, invoices, tickets, auditLogs] = await Promise.all([
+    const [tenants, companyUsers, subscriptions, flags, invoices, tickets, auditLogs] = await Promise.all([
       prisma.tenant.findMany({ orderBy: { createdAt: 'desc' }, take: 1000 }),
-      prisma.user.findMany({ select: { id: true, tenantId: true, role: true, status: true, lastLoginAt: true }, take: 10000 }),
+      this.listCompanyUsers({
+        fields: ['id', 'tenantId', 'role', 'status', 'lastLoginAt', 'email', 'phone', 'name'],
+      }),
       safe(() => prisma.subscription.findMany({ include: { plan: true } })),
       safe(() => prisma.tenantFeatureFlag.findMany({ orderBy: { createdAt: 'desc' } })),
       safe(() => prisma.invoice.findMany({ orderBy: { createdAt: 'desc' } })),
@@ -161,7 +165,7 @@ export class PlatformService {
     ]);
 
     const rows = tenants
-      .map((tenant: any) => this.serializeCompany(tenant, subscriptions, users, flags, invoices, tickets, auditLogs))
+      .map((tenant: any) => this.serializeCompany(tenant, subscriptions, companyUsers, flags, invoices, tickets, auditLogs))
       .filter((row: any) => {
         const q = String(query.q ?? query.search ?? '').trim().toLowerCase();
         const status = String(query.status ?? '').trim().toUpperCase();
@@ -1154,6 +1158,75 @@ export class PlatformService {
     if (status) return status;
     if (!company?.isActive) return 'SUSPENDED';
     return 'ACTIVE';
+  }
+
+  private async listCompanyUsers(options: { fields?: string[] } = {}) {
+    const prisma = this.prisma as any;
+    const fields = new Set(options.fields ?? []);
+    const project: Record<string, 1> = { _id: 1, tenantId: 1 };
+
+    for (const field of fields) {
+      if (field !== 'id') {
+        project[field] = 1;
+      }
+    }
+
+    const result = await prisma.$runCommandRaw({
+      aggregate: 'users',
+      pipeline: [
+        {
+          $match: {
+            tenantId: { $exists: true, $ne: null },
+          },
+        },
+        {
+          $project: project,
+        },
+        {
+          $limit: 10000,
+        },
+      ],
+      cursor: {},
+    });
+
+    const batch = result?.cursor?.firstBatch ?? [];
+    return batch.map((row: any) => this.normalizeMongoValue(row));
+  }
+
+  private normalizeMongoValue(value: any): any {
+    if (Array.isArray(value)) {
+      return value.map((item) => this.normalizeMongoValue(item));
+    }
+
+    if (!value || typeof value !== 'object') {
+      return value;
+    }
+
+    const keys = Object.keys(value);
+    if (keys.length === 1 && Object.prototype.hasOwnProperty.call(value, '$oid')) {
+      return String(value.$oid);
+    }
+    if (keys.length === 1 && Object.prototype.hasOwnProperty.call(value, '$date')) {
+      return new Date(value.$date);
+    }
+    if (keys.length === 1 && Object.prototype.hasOwnProperty.call(value, '$numberInt')) {
+      return Number(value.$numberInt);
+    }
+    if (keys.length === 1 && Object.prototype.hasOwnProperty.call(value, '$numberLong')) {
+      return Number(value.$numberLong);
+    }
+    if (keys.length === 1 && Object.prototype.hasOwnProperty.call(value, '$numberDouble')) {
+      return Number(value.$numberDouble);
+    }
+
+    const normalized: Record<string, any> = {};
+    for (const [key, nested] of Object.entries(value)) {
+      normalized[key] = this.normalizeMongoValue(nested);
+    }
+    if (normalized._id != null && normalized.id == null) {
+      normalized.id = normalized._id;
+    }
+    return normalized;
   }
 
   private serializeCompany(

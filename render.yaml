@@ -34,7 +34,7 @@ services:
           type: redis
           property: connectionString
       - key: FRONTEND_URL
-        sync: false
+        value: https://taskeasy-web.onrender.com
       - key: CLOUDINARY_CLOUD_NAME
         sync: false
       - key: CLOUDINARY_API_KEY
@@ -63,7 +63,7 @@ services:
       - key: NODE_ENV
         value: production
       - key: NEXT_PUBLIC_API_URL
-        sync: false
+        value: https://taskeasy-api.onrender.com/api
       - key: NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME
         sync: false
 

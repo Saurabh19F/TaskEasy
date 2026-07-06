@@ -17,6 +17,15 @@ async function bootstrap() {
   const configService = app.get(ConfigService);
   const port = configService.get<number>('PORT', 4000);
   const frontendUrl = configService.get<string>('FRONTEND_URL', 'http://localhost:3000');
+  const allowedOrigins = Array.from(
+    new Set(
+      [
+        ...frontendUrl.split(',').map((origin) => origin.trim()),
+        'http://localhost:3000',
+        'https://taskeasy-web.onrender.com',
+      ].filter(Boolean),
+    ),
+  );
 
   // ── Security ──────────────────────────────────────────────
   app.use(helmet());
@@ -32,7 +41,7 @@ async function bootstrap() {
 
   // ── CORS ──────────────────────────────────────────────────
   app.enableCors({
-    origin: [frontendUrl, 'http://localhost:3000'],
+    origin: allowedOrigins,
     credentials: true,
     methods: ['GET', 'POST', 'PATCH', 'DELETE', 'PUT', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Tenant-ID'],

@@ -60,7 +60,6 @@ const NAV_GROUPS: NavGroup[] = [
       { label: 'Audit Logs', href: '/audit-logs', icon: Shield, color: 'text-red-500', roles: ['ADMIN', 'AUDITOR'] },
       { label: 'Set Hierarchy', href: '/hierarchy', icon: Users, color: 'text-fuchsia-500', roles: ['ADMIN'] },
       { label: 'Settings', href: '/settings', icon: Settings, color: 'text-slate-500', roles: ['ADMIN'] },
-      { label: 'Admin Panel', href: '/admin', icon: Settings, color: 'text-zinc-500', roles: ['ADMIN'] },
     ],
   },
 ];

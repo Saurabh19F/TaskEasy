@@ -22,7 +22,7 @@ export class CalendarService {
     // regardless of which team they actually manage.
     const visibleIds = await this.hierarchy.getVisibleUserIds(userId, role, tenantId);
 
-    const [delegation, workRequests, checklist, fmsTasks] = await Promise.all([
+    const [delegation, workRequests, checklist, fmsTasks, holidays] = await Promise.all([
       this.prisma.delegationTask.findMany({
         where: {
           tenantId,
@@ -67,6 +67,13 @@ export class CalendarService {
           personId: true, fmsName: true,
         },
       }),
+      this.prisma.holidayCalendar.findMany({
+        where: {
+          tenantId,
+          date: { gte: from, lte: to },
+        },
+        select: { id: true, name: true, date: true },
+      }),
     ]);
 
     return {
@@ -83,6 +90,12 @@ export class CalendarService {
         title: t.stepName,
         type: 'FMS',
         date: t.plannedDate,
+      })),
+      holidays: holidays.map((h) => ({
+        id: h.id,
+        title: h.name,
+        date: h.date,
+        type: 'HOLIDAY' as const,
       })),
     };
   }

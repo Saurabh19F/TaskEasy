@@ -11,7 +11,7 @@ interface CalendarEvent {
   title: string;
   date: string;
   status: string;
-  type: 'DELEGATION' | 'WORK_REQUEST' | 'CHECKLIST' | 'FMS';
+  type: 'DELEGATION' | 'WORK_REQUEST' | 'CHECKLIST' | 'FMS' | 'HOLIDAY';
 }
 
 const TYPE_COLORS: Record<string, string> = {
@@ -19,6 +19,7 @@ const TYPE_COLORS: Record<string, string> = {
   WORK_REQUEST: 'bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-300',
   CHECKLIST: 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300',
   FMS: 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300',
+  HOLIDAY: 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300',
 };
 
 function getDaysInMonth(year: number, month: number) {
@@ -45,15 +46,21 @@ export default function CalendarPage() {
         workRequests: CalendarEvent[];
         checklist: CalendarEvent[];
         fms: CalendarEvent[];
+        holidays: CalendarEvent[];
       }>('/calendar/events', { from, to }),
   });
 
   const allEvents: CalendarEvent[] = [
+    ...(events?.holidays ?? []),
     ...(events?.delegation ?? []),
     ...(events?.workRequests ?? []),
     ...(events?.checklist ?? []),
     ...(events?.fms ?? []),
   ];
+
+  const holidayDays = new Set(
+    (events?.holidays ?? []).map((h) => new Date(h.date).getDate()),
+  );
 
   const eventsByDay: Record<number, CalendarEvent[]> = {};
   for (const ev of allEvents) {
@@ -124,11 +131,14 @@ export default function CalendarPage() {
             ))}
             {days.map((day) => {
               const isToday = day === today.getDate() && month === today.getMonth() && year === today.getFullYear();
+              const isHoliday = holidayDays.has(day);
               const dayEvents = eventsByDay[day] ?? [];
               return (
                 <div
                   key={day}
-                  className="min-h-[100px] p-1.5 border-b border-r border-slate-100 dark:border-slate-800"
+                  className={`min-h-[100px] p-1.5 border-b border-r border-slate-100 dark:border-slate-800 ${
+                    isHoliday ? 'bg-red-50 dark:bg-red-950/20' : ''
+                  }`}
                 >
                   <div className={`text-sm font-medium mb-1 w-7 h-7 flex items-center justify-center rounded-full ${
                     isToday ? 'bg-indigo-600 text-contrast' : 'text-slate-700 dark:text-slate-300'

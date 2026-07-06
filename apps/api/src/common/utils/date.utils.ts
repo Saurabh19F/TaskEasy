@@ -113,6 +113,30 @@ export function getNextPlannedDate(frequency: string, from: Date): Date {
   return next;
 }
 
+export function isHolidayDate(date: Date, holidays: Date[], timezone = 'UTC'): boolean {
+  const d = startOfDay(toZonedTime(date, timezone));
+  return holidays.some(
+    (h) => startOfDay(toZonedTime(h, timezone)).getTime() === d.getTime(),
+  );
+}
+
+export function skipToNextWorkingDay(
+  date: Date,
+  workingDays: number[],
+  holidays: Date[],
+  timezone = 'UTC',
+): Date {
+  let current = new Date(date);
+  // eslint-disable-next-line no-constant-condition
+  while (true) {
+    const dayOfWeek = current.getDay() === 0 ? 7 : current.getDay();
+    if (workingDays.includes(dayOfWeek) && !isHolidayDate(current, holidays, timezone)) {
+      return current;
+    }
+    current = new Date(current.getTime() + 24 * 60 * 60 * 1000);
+  }
+}
+
 export function getPeriodRange(
   period: string,
   timezone = 'UTC',

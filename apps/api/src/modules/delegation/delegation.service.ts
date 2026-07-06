@@ -14,7 +14,7 @@ import { HierarchyService } from '../hierarchy/hierarchy.service';
 import { AutomationService } from '../automation/automation.service';
 import { QUEUES } from '../../queue/queue.constants';
 import { NotificationsGateway } from '../notifications/notifications.gateway';
-import { getPeriodRange, parseFrontendDateTime, calculateDelay } from '../../common/utils/date.utils';
+import { getPeriodRange, parseFrontendDateTime, calculateDelay, isHolidayDate } from '../../common/utils/date.utils';
 import { loadCompanyCalendar } from '../../common/utils/calendar.utils';
 import { generateDelegationId, atomicNextDelegationId } from '../../common/utils/id-generator.utils';
 import { CachePatterns } from '../../common/utils/cache-keys.utils';
@@ -90,11 +90,28 @@ export class DelegationService {
       where: { id: tenantId },
       select: { timezone: true },
     });
+    const tz = tenant?.timezone ?? 'UTC';
     const targetDate = parseFrontendDateTime(
       dto.targetDate,
       dto.targetTime || '18:00',
-      tenant?.timezone ?? 'UTC',
+      tz,
     );
+
+    const holidayOnDate = await this.prisma.holidayCalendar.findFirst({
+      where: {
+        tenantId,
+        date: {
+          gte: new Date(dto.targetDate + 'T00:00:00.000Z'),
+          lte: new Date(dto.targetDate + 'T23:59:59.999Z'),
+        },
+      },
+      select: { name: true },
+    });
+    if (holidayOnDate) {
+      throw new BadRequestException(
+        `Cannot assign work on ${dto.targetDate} — it is a holiday (${holidayOnDate.name})`,
+      );
+    }
 
     // Create one task per doer — each gets its own atomic sequence number
     // (BUG-01 fix: previously used count+idx which is not atomic under concurrency)

@@ -73,6 +73,22 @@ export class WorkRequestService {
       tenant?.timezone ?? 'UTC',
     );
 
+    const holidayOnDate = await this.prisma.holidayCalendar.findFirst({
+      where: {
+        tenantId,
+        date: {
+          gte: new Date(dto.deadlineDate + 'T00:00:00.000Z'),
+          lte: new Date(dto.deadlineDate + 'T23:59:59.999Z'),
+        },
+      },
+      select: { name: true },
+    });
+    if (holidayOnDate) {
+      throw new BadRequestException(
+        `Cannot set deadline on ${dto.deadlineDate} — it is a holiday (${holidayOnDate.name})`,
+      );
+    }
+
     const wr = await this.prisma.workRequest.create({
       data: {
         tenantId,

@@ -14,7 +14,7 @@ import { HierarchyService } from '../hierarchy/hierarchy.service';
 import { AutomationService } from '../automation/automation.service';
 import { QUEUES } from '../../queue/queue.constants';
 import { CachePatterns } from '../../common/utils/cache-keys.utils';
-import { calculateDelay } from '../../common/utils/date.utils';
+import { calculateDelay, skipToNextWorkingDay } from '../../common/utils/date.utils';
 import { loadCompanyCalendar } from '../../common/utils/calendar.utils';
 import { isApproverRole } from '../../common/utils/role.utils';
 import {
@@ -92,12 +92,27 @@ export class FmsService {
       let cumulativeDays = 0;
       const taskResults: any[] = [];
 
+      const tenant = await this.prisma.tenant.findUnique({
+        where: { id: tenantId },
+        select: { timezone: true, workingDays: true },
+      });
+      const tz = tenant?.timezone ?? 'UTC';
+      const workingDays = tenant?.workingDays?.length ? tenant.workingDays : [1, 2, 3, 4, 5, 6];
+      const maxFuture = new Date(today);
+      maxFuture.setFullYear(maxFuture.getFullYear() + 1);
+      const holidays = await this.prisma.holidayCalendar.findMany({
+        where: { tenantId, date: { gte: today, lte: maxFuture } },
+        select: { date: true },
+      });
+      const holidayDates = holidays.map((h) => h.date);
+
       for (let i = 0; i < steps.length; i++) {
         const s = steps[i];
         const tatDays = Math.max(1, Math.ceil((Number(s.tatHours) || 24) / 24));
         cumulativeDays += tatDays;
-        const plannedDate = new Date(today);
-        plannedDate.setDate(today.getDate() + cumulativeDays);
+        const rawDate = new Date(today);
+        rawDate.setDate(today.getDate() + cumulativeDays);
+        const plannedDate = skipToNextWorkingDay(rawDate, workingDays, holidayDates, tz);
 
         if (!s.assignedToId) continue;
 

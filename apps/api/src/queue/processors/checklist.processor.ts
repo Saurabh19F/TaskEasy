@@ -6,9 +6,8 @@ import { Queue } from 'bull';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AutomationService } from '../../modules/automation/automation.service';
 import { generateChecklistTaskId } from '../../common/utils/id-generator.utils';
-import { parseFrontendDateTime } from '../../common/utils/date.utils';
+import { parseFrontendDateTime, skipToNextWorkingDay } from '../../common/utils/date.utils';
 import { QUEUES } from '../queue.constants';
-import { addDays, addWeeks, addMonths, addYears } from 'date-fns';
 
 export interface GenerateChecklistTasksJob {
   masterId: string;
@@ -40,16 +39,27 @@ export class ChecklistProcessor {
 
     const tenant = await this.prisma.tenant.findUnique({
       where: { id: tenantId },
-      select: { timezone: true },
+      select: { timezone: true, workingDays: true },
     });
     const timezone = tenant?.timezone ?? 'UTC';
+    const workingDays = tenant?.workingDays?.length ? tenant.workingDays : [1, 2, 3, 4, 5, 6];
     const startTime = master.startTime || '09:00';
 
-    const dates = this.generateOccurrenceDates(
+    const rawDates = this.generateOccurrenceDates(
       master.startDate,
       master.frequency as any,
       master.endDate,
     );
+
+    const rangeEnd = master.endDate
+      ?? new Date(master.startDate.getFullYear() + 1, master.startDate.getMonth(), master.startDate.getDate());
+    const holidays = await this.prisma.holidayCalendar.findMany({
+      where: { tenantId, date: { gte: master.startDate, lte: rangeEnd } },
+      select: { date: true },
+    });
+    const holidayDates = holidays.map((h) => h.date);
+
+    const dates = rawDates.map((d) => skipToNextWorkingDay(d, workingDays, holidayDates, timezone));
 
     const existingCount = await this.prisma.checklistTask.count({ where: { tenantId } });
 

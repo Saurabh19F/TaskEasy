@@ -81,6 +81,8 @@ export default function LoginPage() {
   const {
     register, handleSubmit, formState: { errors },
   } = useForm<FormValues>({ resolver: zodResolver(schema) });
+  const { onBlur: emailOnBlur, ...emailInputProps } = register('email');
+  const { onBlur: passwordOnBlur, ...passwordInputProps } = register('password');
   const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
 
   const { mutate: loginMutate, isPending } = useLogin();
@@ -271,8 +273,11 @@ export default function LoginPage() {
                       color: '#f1f5f9',
                     }}
                     onFocus={(e) => { e.currentTarget.style.borderColor = 'rgba(37, 99, 235, 0.5)'; }}
-                    onBlur={(e) => { e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.1)'; }}
-                    {...register('email')}
+                    onBlur={(e) => {
+                      emailOnBlur(e);
+                      e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.1)';
+                    }}
+                    {...emailInputProps}
                   />
                 </div>
                 {errors.email && <p className="mt-1 text-xs" style={{ color: '#f87171' }}>{errors.email.message}</p>}
@@ -300,8 +305,11 @@ export default function LoginPage() {
                       color: '#f1f5f9',
                     }}
                     onFocus={(e) => { e.currentTarget.style.borderColor = 'rgba(37, 99, 235, 0.5)'; }}
-                    onBlur={(e) => { e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.1)'; }}
-                    {...register('password')}
+                    onBlur={(e) => {
+                      passwordOnBlur(e);
+                      e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.1)';
+                    }}
+                    {...passwordInputProps}
                   />
                   <button
                     type="button"

@@ -237,7 +237,7 @@ export interface FmsStep {
   tenantId: string;
   title: string;
   stepNo: number;
-  status: 'PENDING' | 'COMPLETED';
+  status: 'PENDING' | 'SEND_FOR_APPROVAL' | 'REWORK' | 'COMPLETED' | 'LATE';
   plannedDate: string;
   actualDate?: string;
   delayDays: number;

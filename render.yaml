@@ -12,7 +12,7 @@ services:
     name: taskeasy-api
     runtime: node
     plan: free
-    buildCommand: cd apps/api && npm install && npx prisma generate --schema ../../prisma/schema.prisma && npm run build
+    buildCommand: cd apps/api && npm install --include=dev && npx prisma generate --schema ../../prisma/schema.prisma && npm run build
     startCommand: cd apps/api && node dist/main
     healthCheckPath: /api/health
     envVars:
@@ -66,7 +66,7 @@ services:
     name: taskeasy-web
     runtime: node
     plan: free
-    buildCommand: cd apps/web && npm install && npm run build
+    buildCommand: cd apps/web && npm install --include=dev && npm run build
     startCommand: cd apps/web && npm start
     envVars:
       - key: NODE_ENV

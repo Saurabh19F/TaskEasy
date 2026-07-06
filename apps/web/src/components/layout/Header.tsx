@@ -6,7 +6,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   Menu, RefreshCw, Bell, ChevronDown, User, Key, LogOut,
-  Plus, Search, Briefcase, FolderKanban, Users, ListTodo, Sparkles,
+  Plus, Search, Briefcase, FolderKanban, Users, ListTodo, Sun, Moon,
 } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { cn } from '@/lib/utils';
@@ -63,6 +63,7 @@ export function Header({ onToggleSidebar }: HeaderProps) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [searchValue, setSearchValue] = useState('');
+  const [darkMode, setDarkMode] = useState(false);
   const profileRef = useRef<HTMLDivElement>(null);
   const quickRef = useRef<HTMLDivElement>(null);
   const qc = useQueryClient();
@@ -72,9 +73,20 @@ export function Header({ onToggleSidebar }: HeaderProps) {
   const unreadCount = useNotificationStore((s) => s.unreadCount);
 
   useEffect(() => {
-    document.documentElement.classList.remove('dark');
-    document.documentElement.classList.add('light');
+    const saved = localStorage.getItem('theme');
+    const prefersDark = saved === 'dark' || (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    setDarkMode(prefersDark);
+    document.documentElement.classList.toggle('dark', prefersDark);
+    document.documentElement.classList.toggle('light', !prefersDark);
   }, []);
+
+  const toggleTheme = () => {
+    const next = !darkMode;
+    setDarkMode(next);
+    document.documentElement.classList.toggle('dark', next);
+    document.documentElement.classList.toggle('light', !next);
+    localStorage.setItem('theme', next ? 'dark' : 'light');
+  };
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -109,7 +121,7 @@ export function Header({ onToggleSidebar }: HeaderProps) {
 
   return (
     <>
-      <header className="sticky top-0 z-40 flex min-h-[64px] flex-shrink-0 items-center gap-3 border-b border-border/60 bg-[rgba(255,255,255,0.88)] px-4 py-3 backdrop-blur-xl"
+      <header className="sticky top-0 z-40 flex min-h-[64px] flex-shrink-0 items-center gap-3 border-b border-border/60 bg-[rgba(255,255,255,0.88)] dark:bg-[rgba(15,23,42,0.88)] px-4 py-3 backdrop-blur-xl"
         style={{ boxShadow: '0 1px 0 rgba(226,232,240,0.9), 0 2px 12px -4px rgba(15,23,42,0.06)' }}
       >
         <div className="flex flex-1 items-center gap-3 min-w-0">
@@ -119,11 +131,7 @@ export function Header({ onToggleSidebar }: HeaderProps) {
 
           {/* Breadcrumb */}
           <div className="hidden min-w-0 flex-col lg:flex">
-            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-              <Sparkles className="h-3 w-3 text-primary/70" />
-              <span className="section-label">Workspace</span>
-            </div>
-            <nav className="mt-0.5 flex flex-wrap items-center gap-1.5 text-sm">
+            <nav className="flex flex-wrap items-center gap-1.5 text-sm">
               <Link href="/dashboard" className="font-semibold text-foreground/80 hover:text-primary transition-colors">
                 Home
               </Link>
@@ -219,6 +227,11 @@ export function Header({ onToggleSidebar }: HeaderProps) {
           {/* Refresh */}
           <button onClick={handleRefresh} className={iconBtn} aria-label="Refresh data">
             <RefreshCw className={cn('h-4 w-4', refreshing && 'animate-spin')} />
+          </button>
+
+          {/* Theme toggle */}
+          <button onClick={toggleTheme} className={iconBtn} aria-label="Toggle dark mode">
+            {darkMode ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
           </button>
 
           {/* Notifications */}

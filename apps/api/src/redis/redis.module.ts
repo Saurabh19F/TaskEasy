@@ -13,11 +13,12 @@ import { RedisService } from './redis.service';
         const Redis = (await import('ioredis')).default;
         const redisUrl = config.get<string>('REDIS_URL');
         const client = redisUrl
-          ? new Redis(redisUrl)
+          ? new Redis(redisUrl, { maxRetriesPerRequest: null })
           : new Redis({
               host: config.get('REDIS_HOST', 'localhost'),
               port: config.get<number>('REDIS_PORT', 6379),
               password: config.get('REDIS_PASSWORD') || undefined,
+              maxRetriesPerRequest: null,
               retryStrategy: (times) => Math.min(times * 50, 2000),
           });
 

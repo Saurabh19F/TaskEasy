@@ -30,18 +30,11 @@ services:
         generateValue: true
       - key: JWT_REFRESH_EXPIRES_IN
         value: 7d
-      - key: REDIS_HOST
+      - key: REDIS_URL
         fromService:
           name: taskeasy-redis
           type: redis
-          property: host
-      - key: REDIS_PORT
-        fromService:
-          name: taskeasy-redis
-          type: redis
-          property: port
-      - key: REDIS_PASSWORD
-        sync: false
+          property: connectionString
       - key: FRONTEND_URL
         sync: false
       - key: CLOUDINARY_CLOUD_NAME

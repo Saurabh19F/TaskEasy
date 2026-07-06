@@ -23,27 +23,31 @@ export class QueueSchedulerService implements OnModuleInit {
   ) {}
 
   async onModuleInit() {
-    // Bull keys repeatable jobs by name + repeat options, so re-adding these on
-    // every app restart does not create duplicate schedules.
-    await this.escalationQueue.add(
-      'check-sla',
-      {},
-      { repeat: { every: 30 * 60 * 1000 } }, // every 30 minutes
-    );
-    this.logger.log('Scheduled recurring SLA check (every 30 min) — covers delegation + FMS overdue escalation');
+    try {
+      // Bull keys repeatable jobs by name + repeat options, so re-adding these on
+      // every app restart does not create duplicate schedules.
+      await this.escalationQueue.add(
+        'check-sla',
+        {},
+        { repeat: { every: 30 * 60 * 1000 } }, // every 30 minutes
+      );
+      this.logger.log('Scheduled recurring SLA check (every 30 min) — covers delegation + FMS overdue escalation');
 
-    await this.checklistQueue.add(
-      'check-missed',
-      {},
-      { repeat: { every: 60 * 60 * 1000 } }, // hourly
-    );
-    this.logger.log('Scheduled recurring checklist missed-task sweep (hourly) — marks overdue PENDING tasks LATE');
+      await this.checklistQueue.add(
+        'check-missed',
+        {},
+        { repeat: { every: 60 * 60 * 1000 } }, // hourly
+      );
+      this.logger.log('Scheduled recurring checklist missed-task sweep (hourly) — marks overdue PENDING tasks LATE');
 
-    await this.escalationQueue.add(
-      'check-punch-in',
-      {},
-      { repeat: { every: 1 * 60 * 1000 } }, // every 1 minute
-    );
-    this.logger.log('Scheduled recurring punch-in check (every 1 min) — alerts admin + reassigns work to buddy when someone misses their punch-in window');
+      await this.escalationQueue.add(
+        'check-punch-in',
+        {},
+        { repeat: { every: 1 * 60 * 1000 } }, // every 1 minute
+      );
+      this.logger.log('Scheduled recurring punch-in check (every 1 min) — alerts admin + reassigns work to buddy when someone misses their punch-in window');
+    } catch (error: any) {
+      this.logger.warn(`Redis queue scheduler skipped during boot: ${error?.message ?? error}`);
+    }
   }
 }

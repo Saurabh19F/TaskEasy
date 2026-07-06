@@ -63,7 +63,7 @@ import { IntegrationsModule } from './modules/integrations/integrations.module';
     BullModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
-        redis: {
+        redis: config.get<string>('REDIS_URL') ?? {
           host: config.get('REDIS_HOST', 'localhost'),
           port: config.get<number>('REDIS_PORT', 6379),
           password: config.get('REDIS_PASSWORD') || undefined,

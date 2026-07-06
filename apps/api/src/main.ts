@@ -94,10 +94,10 @@ async function bootstrap() {
     });
   }
 
-  await app.listen(port);
-  console.log(`🚀 TaskEasy API running on http://localhost:${port}/api`);
-  console.log(`💚 Health check:  http://localhost:${port}/health`);
-  console.log(`📚 Swagger docs:  http://localhost:${port}/docs`);
+  await app.listen(port, '0.0.0.0');
+  console.log(`🚀 TaskEasy API running on http://0.0.0.0:${port}/api`);
+  console.log(`💚 Health check:  http://0.0.0.0:${port}/health`);
+  console.log(`📚 Swagger docs:  http://0.0.0.0:${port}/docs`);
 }
 
 bootstrap();

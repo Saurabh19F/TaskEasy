@@ -91,8 +91,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   if (!hasHydrated || isCheckingSession) {
     return (
-      <div className="flex min-h-screen items-center justify-center shell-gradient-light text-foreground">
-        <div className="rounded-2xl border border-border bg-surface px-5 py-4 text-sm text-muted-foreground backdrop-blur-xl shadow-[0_18px_48px_-34px_rgba(15,23,42,0.18)]">
+      <div className="flex min-h-screen items-center justify-center bg-background text-foreground">
+        <div className="rounded-lg border border-border bg-surface px-5 py-4 text-sm text-muted-foreground">
           Loading workspace...
         </div>
       </div>
@@ -100,8 +100,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="relative flex h-screen overflow-hidden shell-gradient-light text-foreground">
-      <div className="pointer-events-none absolute inset-0 subtle-grid opacity-[0.22]" aria-hidden="true" />
+    <div className="relative flex h-screen overflow-hidden bg-background text-foreground">
       <Sidebar
         collapsed={sidebarCollapsed}
         mobileOpen={mobileNavOpen}

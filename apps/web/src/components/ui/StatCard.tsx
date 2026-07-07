@@ -69,23 +69,23 @@ export function StatCard({
       whileTap={onClick ? { scale: 0.99 } : undefined}
       transition={{ duration: 0.15, ease: 'easeOut' }}
       className={cn(
-        'section-card p-5 transition-all duration-150',
-        onClick && 'cursor-pointer hover:-translate-y-0.5 hover:shadow-[0_18px_40px_-26px_rgba(15,23,42,0.25)]',
+        'section-card p-5 transition-colors duration-150',
+        onClick && 'cursor-pointer hover:bg-surface-muted',
         className,
       )}
     >
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">{label}</p>
-          <p className={cn('mt-2 text-3xl font-semibold tracking-tight', c.value)}>
+          <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">{label}</p>
+          <p className={cn('mt-1.5 text-2xl font-semibold tracking-tight', c.value)}>
             <AnimatedValue value={value} />
           </p>
           {subLabel && <p className="mt-2 text-xs text-muted-foreground">{subLabel}</p>}
         </div>
         {Icon && (
           <div className={cn(
-            'flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl border border-border ring-1',
-            c.bg, c.ring,
+            'flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-md',
+            c.bg,
           )}>
             <Icon className={cn('h-5 w-5', c.icon)} />
           </div>
@@ -116,18 +116,18 @@ export function ModuleMetricCard({
         <div className="mb-4 flex items-start justify-between gap-3">
           <div className="flex items-center gap-3">
           {Icon ? (
-            <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-[rgba(37,99,235,0.10)] text-primary ring-1 ring-[rgba(37,99,235,0.18)]">
+            <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
               <Icon className="h-4 w-4" />
             </div>
           ) : (
-            <div className="h-10 w-10 rounded-xl bg-surface-muted" />
+            <div className="h-9 w-9 rounded-md bg-surface-muted" />
           )}
           <div>
             <span className="text-sm font-semibold tracking-tight text-foreground">{label}</span>
             <p className="text-xs text-muted-foreground">Track total flow, completion, and risk.</p>
           </div>
         </div>
-        <span className="inline-flex items-center rounded-full bg-[rgba(37,99,235,0.10)] px-2.5 py-0.5 text-[11px] font-medium text-primary">
+        <span className="inline-flex items-center rounded bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-primary">
           {completion}% complete
         </span>
       </div>
@@ -143,8 +143,8 @@ export function ModuleMetricCard({
             key={key}
             onClick={() => onMetricClick?.(key)}
             className={cn(
-              'rounded-xl border border-border bg-surface px-3 py-3 transition-all duration-150',
-              onMetricClick && 'cursor-pointer hover:border-primary/25 hover:bg-surface-muted',
+              'rounded-md border border-border bg-surface px-3 py-3 transition-colors duration-100',
+              onMetricClick && 'cursor-pointer hover:bg-surface-muted',
             )}
           >
             <p className={cn('text-xl font-bold tracking-tight', color)}>{value}</p>

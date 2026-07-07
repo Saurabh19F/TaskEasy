@@ -119,7 +119,7 @@ export function DataTable<T extends Record<string, any>>({
     <div className="space-y-4">
       {/* Toolbar — only render when there's something to show */}
       {(searchable || exportFilename || headerActions) && (
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-[1.35rem] border border-border bg-surface/92 px-4 py-3 shadow-[0_18px_50px_-38px_rgba(15,23,42,0.18)] backdrop-blur-md">
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-border bg-surface px-4 py-2.5">
           {searchable && (
             <Input
               className="max-w-md"
@@ -149,14 +149,14 @@ export function DataTable<T extends Record<string, any>>({
       <div className="surface-card overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="sticky top-0 z-10 border-b border-border bg-surface-strong/95 backdrop-blur-md">
+            <thead className="sticky top-0 z-10 border-b border-border bg-surface-muted">
               <tr>
                 {columns.map((col) => (
                   <th
                     key={col.key}
                     onClick={() => col.sortable && handleSort(col.key)}
                     className={cn(
-                      'whitespace-nowrap px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground',
+                      'whitespace-nowrap px-4 py-2.5 text-left text-[11px] font-medium uppercase tracking-wider text-muted-foreground',
                       col.sortable && 'cursor-pointer select-none transition-colors hover:text-foreground',
                       col.className,
                     )}
@@ -232,7 +232,7 @@ export function DataTable<T extends Record<string, any>>({
 
         {/* Pagination */}
         {!loading && sorted.length > pageSize && (
-          <div className="flex items-center justify-between border-t border-border bg-surface-strong/95 px-4 py-3 backdrop-blur-md">
+          <div className="flex items-center justify-between border-t border-border bg-surface-muted px-4 py-2.5">
             <span className="hero-chip-muted">
               {(page - 1) * pageSize + 1}–{Math.min(page * pageSize, sorted.length)} of {sorted.length}
             </span>

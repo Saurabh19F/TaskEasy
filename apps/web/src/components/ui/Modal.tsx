@@ -79,19 +79,18 @@ export function Modal({ open, onClose, title, size = 'md', children, footer }: M
             tabIndex={-1}
             className={cn(
               'relative z-10 flex max-h-[92vh] w-full flex-col overflow-hidden outline-none',
-              'rounded-t-[1.25rem] border border-border bg-surface',
-              'shadow-[0_32px_80px_-30px_rgba(15,23,42,0.35)]',
-              'sm:max-h-[90vh] sm:rounded-[1.25rem]',
+              'rounded-t-lg border border-border bg-surface shadow-lg',
+              'sm:max-h-[90vh] sm:rounded-lg',
               sizes[size],
             )}
           >
             {title && (
-              <div className="flex items-center justify-between border-b border-border bg-gradient-to-r from-primary/6 via-surface to-accent/6 px-5 py-4">
-                <h2 id={titleId} className="text-base font-semibold tracking-tight text-foreground">{title}</h2>
+              <div className="flex items-center justify-between border-b border-border px-5 py-3.5">
+                <h2 id={titleId} className="text-sm font-semibold text-foreground">{title}</h2>
                 <button
                   onClick={onClose}
                   aria-label="Close dialog"
-                  className="rounded-lg p-1.5 text-muted-foreground transition-colors duration-150 hover:bg-surface-muted hover:text-foreground"
+                  className="rounded-md p-1 text-muted-foreground transition-colors duration-100 hover:bg-surface-muted hover:text-foreground"
                 >
                   <X className="h-5 w-5" />
                 </button>
@@ -101,7 +100,7 @@ export function Modal({ open, onClose, title, size = 'md', children, footer }: M
             <div className="flex-1 overflow-y-auto p-5">{children}</div>
 
             {footer && (
-              <div className="flex justify-end gap-2 border-t border-border bg-surface-muted px-5 py-4">
+              <div className="flex justify-end gap-2 border-t border-border px-5 py-3">
                 {footer}
               </div>
             )}

@@ -10,16 +10,16 @@ interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
 }
 
 const inputBase =
-  'w-full rounded-xl border border-border bg-surface px-3.5 py-2.5 text-sm text-foreground shadow-sm ' +
-  'placeholder:text-muted-foreground/60 ' +
-  'transition-all duration-150 ' +
-  'focus:border-primary/45 focus:outline-none focus:ring-2 focus:ring-primary/12 focus:ring-offset-1 focus:ring-offset-background ' +
+  'w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-foreground ' +
+  'placeholder:text-muted-foreground ' +
+  'transition-colors duration-100 ' +
+  'focus:border-primary/40 focus:outline-none focus:ring-1 focus:ring-primary/10 ' +
   'disabled:cursor-not-allowed disabled:opacity-60 disabled:bg-surface-muted';
 
 const inputError =
   'border-danger focus:border-danger focus:ring-danger/15';
 
-const labelBase = 'text-sm font-semibold tracking-tight text-foreground';
+const labelBase = 'text-sm font-medium text-foreground';
 
 export const Input = forwardRef<HTMLInputElement, InputProps>(
   ({ label, error, helperText, leftElement, rightElement, className, id, ...props }, ref) => {

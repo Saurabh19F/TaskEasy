@@ -43,8 +43,8 @@ export default function SettingsPage() {
   return (
     <div className="space-y-5 max-w-2xl">
       <div className="flex items-center gap-2">
-        <Settings className="h-5 w-5 text-indigo-500" />
-        <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100">Settings</h1>
+        <Settings className="h-5 w-5 text-muted-foreground" />
+        <h1 className="text-lg font-semibold text-foreground">Settings</h1>
       </div>
 
       <div className="space-y-3">
@@ -52,10 +52,10 @@ export default function SettingsPage() {
           <Link
             key={href}
             href={href}
-            className="flex items-center gap-4 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-5 hover:border-indigo-300 dark:hover:border-indigo-600 transition-colors group"
+            className="flex items-center gap-4 rounded-lg border border-border bg-surface p-4 hover:bg-surface-muted transition-colors group"
           >
-            <div className="h-10 w-10 rounded-xl bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center flex-shrink-0 group-hover:bg-indigo-100 dark:group-hover:bg-indigo-900/50 transition-colors">
-              <Icon className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
+            <div className="h-9 w-9 rounded-md bg-surface-muted flex items-center justify-center flex-shrink-0 group-hover:bg-surface transition-colors border border-border">
+              <Icon className="h-4 w-4 text-muted-foreground" />
             </div>
             <div className="flex-1 min-w-0">
               <p className="font-semibold text-slate-800 dark:text-slate-200">{title}</p>

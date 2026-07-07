@@ -7,10 +7,11 @@ import {
   GitBranch, CheckCircle, BarChart3, FileText, Bell,
   Settings, Users, CalendarDays,
   Zap, Shield, FolderKanban, Kanban, X,
-  FileSpreadsheet, TrendingUp, Hexagon,
+  FileSpreadsheet, TrendingUp,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/store/auth.store';
+import { Logo, LogoIcon } from '@/components/layout/Logo';
 import { useNotificationCounts } from '@/hooks/useDashboard';
 
 interface NavItem {
@@ -121,15 +122,10 @@ export function Sidebar({ collapsed = false, mobileOpen = false, onMobileClose }
         )}
       >
         <div className="flex items-center gap-2.5 border-b border-border px-4 py-4">
-          <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-primary">
-            <Hexagon className="h-4 w-4 text-contrast" />
-          </div>
-          {!collapsed && (
-            <div className="min-w-0 flex-1">
-              <span className="block text-[15px] font-semibold tracking-tight text-foreground">
-                TaskEasy
-              </span>
-            </div>
+          {collapsed ? (
+            <LogoIcon className="h-8 w-8 flex-shrink-0 text-primary" />
+          ) : (
+            <Logo size="sm" />
           )}
           <button
             onClick={onMobileClose}

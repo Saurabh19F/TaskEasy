@@ -28,6 +28,7 @@ import { usePlatformAuthStore } from '@/store/platform-auth.store';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { cn } from '@/lib/utils';
+import { LogoIcon } from '@/components/layout/Logo';
 import { getApiBaseUrl } from '@/lib/runtime-config';
 
 const schema = z.object({
@@ -159,12 +160,15 @@ export default function LoginPage() {
             Enterprise-grade workflow platform
           </div>
 
-          <h1 className="mt-8 text-4xl font-bold tracking-tight sm:text-5xl lg:text-6xl" style={{ color: '#ffffff' }}>
-            TaskEasy
-            <span className="block" style={{ background: 'linear-gradient(135deg, #60a5fa, #06b6d4)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-              Command Center
-            </span>
-          </h1>
+          <div className="mt-8 flex items-center gap-4">
+            <LogoIcon className="h-16 w-16 text-blue-400" />
+            <h1 className="text-4xl font-bold tracking-tight sm:text-5xl lg:text-6xl" style={{ color: '#ffffff' }}>
+              TaskEasy
+              <span className="block" style={{ background: 'linear-gradient(135deg, #60a5fa, #06b6d4)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+                Command Center
+              </span>
+            </h1>
+          </div>
           <p className="mt-5 max-w-lg text-base leading-7" style={{ color: 'rgba(203, 213, 225, 0.85)' }}>
             One sign-in for workspace modules or platform admin. Clear routing, faster task handling, and a calmer interface for delegation, approvals, reports, FMS, and operations.
           </p>

@@ -17,10 +17,10 @@ import {
   ShieldAlert,
   DatabaseZap,
   Settings,
-  Hexagon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { usePlatformAuthStore } from '@/store/platform-auth.store';
+import { LogoIcon } from '@/components/layout/Logo';
 
 type NavItem = {
   label: string;
@@ -53,9 +53,7 @@ export function PlatformSidebar() {
   return (
     <aside className="flex h-full w-64 flex-col border-r border-white/8 bg-[#0f172a]">
       <div className="flex items-center gap-2.5 border-b border-white/8 px-4 py-4">
-        <div className="flex h-7 w-7 items-center justify-center rounded-md bg-white/10">
-          <Hexagon className="h-3.5 w-3.5 text-contrast" />
-        </div>
+        <LogoIcon className="h-7 w-7 flex-shrink-0 text-blue-400" />
         <div>
           <p className="text-sm font-semibold tracking-tight text-contrast">TaskEasy</p>
           <p className="text-[11px] text-contrast-55">Platform</p>

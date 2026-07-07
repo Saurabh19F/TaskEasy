@@ -86,9 +86,13 @@ self.addEventListener('fetch', (event) => {
   // Navigation: network-first with offline fallback
   if (request.mode === 'navigate') {
     event.respondWith(
-      fetch(request).catch(() =>
-        caches.match('/offline').then((r) => r || caches.match('/'))
-      )
+      fetch(request).catch(async () => {
+        const offline = await caches.match('/offline');
+        if (offline) return offline;
+        const root = await caches.match('/');
+        if (root) return root;
+        return new Response('Offline', { status: 503, headers: { 'Content-Type': 'text/html' } });
+      })
     );
     return;
   }
@@ -151,6 +155,6 @@ async function networkFirst(request, cacheName) {
     return response;
   } catch {
     const cached = await caches.match(request);
-    return cached ?? Response.error();
+    return cached ?? new Response('Offline', { status: 503, headers: { 'Content-Type': 'text/plain' } });
   }
 }

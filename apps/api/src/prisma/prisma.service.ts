@@ -17,7 +17,26 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
 
   async onModuleInit() {
     await this.$connect();
-    this.logger.log('✅ Database connected');
+    this.logger.log('Database connected');
+    await this.dropStaleIndexes();
+  }
+
+  private async dropStaleIndexes() {
+    const staleIndexes: Record<string, string[]> = {
+      users: ['userId_1'],
+    };
+
+    for (const [collection, indexNames] of Object.entries(staleIndexes)) {
+      for (const indexName of indexNames) {
+        try {
+          await this.$runCommandRaw({ dropIndexes: collection, index: indexName });
+          this.logger.log(`Dropped stale index "${indexName}" from ${collection}`);
+        } catch (err: any) {
+          if (err.message?.includes('index not found') || err.code === 27) continue;
+          this.logger.warn(`Failed to drop index "${indexName}" from ${collection}: ${err.message}`);
+        }
+      }
+    }
   }
 
   async onModuleDestroy() {

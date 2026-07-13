@@ -64,6 +64,12 @@ export class AuditInterceptor implements NestInterceptor {
     return next.handle().pipe(
       tap(async () => {
         try {
+          const secSettings = await this.prisma.securitySettings.findUnique({
+            where: { tenantId: user.tenantId },
+            select: { auditLogsEnabled: true },
+          });
+          if (secSettings && !secSettings.auditLogsEnabled) return;
+
           const action = METHOD_TO_ACTION[req.method];
           const module = moduleFromPath(req.path);
           const description = `${action} on ${req.path}`;

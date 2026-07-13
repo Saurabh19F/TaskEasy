@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { APP_INTERCEPTOR, APP_GUARD } from '@nestjs/core';
 import { TenantGuard } from './common/guards/tenant.guard';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
+import { IpWhitelistGuard } from './common/guards/ip-whitelist.guard';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { join } from 'path';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
@@ -40,6 +41,7 @@ import { VendorPortalModule } from './modules/vendor-portal/vendor-portal.module
 import { BulkImportModule } from './modules/bulk-import/bulk-import.module';
 import { PlatformModule } from './modules/platform/platform.module';
 import { IntegrationsModule } from './modules/integrations/integrations.module';
+import { SecuritySettingsModule } from './modules/security-settings/security-settings.module';
 
 @Module({
   imports: [
@@ -105,11 +107,13 @@ import { IntegrationsModule } from './modules/integrations/integrations.module';
     BulkImportModule,
     PlatformModule,
     IntegrationsModule,
+    SecuritySettingsModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },
     { provide: APP_GUARD, useClass: JwtAuthGuard },
     { provide: APP_GUARD, useClass: TenantGuard },
+    { provide: APP_GUARD, useClass: IpWhitelistGuard },
     { provide: APP_INTERCEPTOR, useClass: AuditInterceptor },
   ],
 })

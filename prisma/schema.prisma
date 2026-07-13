@@ -330,7 +330,26 @@ model Tenant {
   attachments         Attachment[]
   bulkImportBatches   BulkImportBatch[]
 
+  securitySettings SecuritySettings?
+
   @@map("tenants")
+}
+
+model SecuritySettings {
+  id                     String   @id @default(auto()) @map("_id") @db.ObjectId
+  tenantId               String   @unique @db.ObjectId
+  sessionTimeoutEnabled  Boolean  @default(false)
+  sessionTimeoutMinutes  Int      @default(30)
+  auditLogsEnabled       Boolean  @default(true)
+  ipWhitelistEnabled     Boolean  @default(false)
+  whitelistedIps         String[]
+  enforce2fa             Boolean  @default(false)
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  @@map("security_settings")
 }
 
 model Plan {

@@ -4,10 +4,12 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Sidebar } from '@/components/layout/Sidebar';
 import { Header } from '@/components/layout/Header';
+import { useQuery } from '@tanstack/react-query';
 import { useAuthStore } from '@/store/auth.store';
-import { authApi, notificationsApi } from '@/lib/api';
+import { authApi, notificationsApi, securitySettingsApi } from '@/lib/api';
 import { useSocket } from '@/hooks/useSocket';
 import { useNotificationStore } from '@/store/notification.store';
+import { useIdleTimeout } from '@/hooks/useIdleTimeout';
 import { AiAssistantWidget } from '@/components/ai/AiAssistantWidget';
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
@@ -88,6 +90,22 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       .then((count) => setUnreadCount(count))
       .catch(() => {/* non-critical */});
   }, [isAuthenticated, setUnreadCount]);
+
+  const { data: secSettings } = useQuery({
+    queryKey: ['security-settings'],
+    queryFn: securitySettingsApi.get,
+    enabled: isAuthenticated,
+    staleTime: 5 * 60_000,
+  });
+
+  useIdleTimeout(
+    secSettings?.sessionTimeoutMinutes ?? 30,
+    !!(secSettings?.sessionTimeoutEnabled && isAuthenticated),
+    () => {
+      logout();
+      router.replace('/login?reason=timeout');
+    },
+  );
 
   if (!hasHydrated || isCheckingSession) {
     return (

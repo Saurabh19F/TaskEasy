@@ -129,6 +129,25 @@ export const dashboardApi = {
     apiGet<DrilldownRow[]>('/dashboard/drilldown', { module, status, view }),
 };
 
+// ─── Security Settings ───────────────────────────────────────────────────────
+
+export interface SecuritySettings {
+  id: string;
+  tenantId: string;
+  sessionTimeoutEnabled: boolean;
+  sessionTimeoutMinutes: number;
+  auditLogsEnabled: boolean;
+  ipWhitelistEnabled: boolean;
+  whitelistedIps: string[];
+  enforce2fa: boolean;
+}
+
+export const securitySettingsApi = {
+  get: () => apiGet<SecuritySettings>('/security-settings'),
+  update: (data: Partial<SecuritySettings>) =>
+    apiPatch<SecuritySettings>('/security-settings', data),
+};
+
 // ─── Integrations ────────────────────────────────────────────────────────────
 
 export type IntegrationProvider =

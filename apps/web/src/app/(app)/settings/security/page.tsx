@@ -1,43 +1,42 @@
 'use client';
 
 import { useState } from 'react';
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Shield, ArrowLeft, LogOut, Smartphone, Clock, Activity, Globe,
+  Plus, Trash2,
 } from 'lucide-react';
 import Link from 'next/link';
-import { apiGet, apiPost, apiDelete } from '@/lib/axios';
+import { apiGet, apiDelete } from '@/lib/axios';
 import toast from 'react-hot-toast';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
-import { authApi } from '@/lib/api';
-import { formatDate } from '@/lib/utils';
-import { cn } from '@/lib/utils';
-
-interface SecurityFeature {
-  key: string;
-  title: string;
-  description: string;
-  icon: React.ElementType;
-  status: 'Enabled' | 'Disabled' | 'Paused' | 'Inactive';
-  enabled: boolean;
-}
+import { authApi, securitySettingsApi, type SecuritySettings } from '@/lib/api';
+import { formatDate, cn } from '@/lib/utils';
 
 export default function SecuritySettingsPage() {
+  const qc = useQueryClient();
   const [pwForm, setPwForm] = useState({ current: '', next: '', confirm: '' });
   const [show2faSetup, setShow2faSetup] = useState(false);
   const [totpCode, setTotpCode] = useState('');
-  const [sessionTimeout, setSessionTimeout] = useState(false);
-  const [auditLogs, setAuditLogs] = useState(false);
-  const [ipWhitelist, setIpWhitelist] = useState(false);
-  const [twoFaEnabled, setTwoFaEnabled] = useState(false);
+  const [newIp, setNewIp] = useState('');
+
+  const { data: secSettings } = useQuery({
+    queryKey: ['security-settings'],
+    queryFn: securitySettingsApi.get,
+  });
 
   const { data: sessions = [], refetch: refetchSessions } = useQuery({
     queryKey: ['auth-sessions'],
     queryFn: () => apiGet<any[]>('/auth/sessions'),
   });
 
-  const { data: qrData, mutate: setup2fa, isPending: setting2fa } = useMutation({
+  const updateSettingsMutation = useMutation({
+    mutationFn: (data: Partial<SecuritySettings>) => securitySettingsApi.update(data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['security-settings'] }),
+  });
+
+  const { data: qrData, mutate: setup2fa } = useMutation({
     mutationFn: () => authApi.setup2fa(),
     onSuccess: () => setShow2faSetup(true),
     onError: () => { setShow2faSetup(false); toast.error('Failed to setup 2FA'); },
@@ -49,7 +48,7 @@ export default function SecuritySettingsPage() {
       toast.success('2FA enabled');
       setShow2faSetup(false);
       setTotpCode('');
-      setTwoFaEnabled(true);
+      updateSettingsMutation.mutate({ enforce2fa: true });
     },
     onError: () => toast.error('Invalid code'),
   });
@@ -71,80 +70,103 @@ export default function SecuritySettingsPage() {
     changePwMutation.mutate();
   };
 
-  const securityFeatures: SecurityFeature[] = [
+  const handleToggle = (key: string) => {
+    if (!secSettings) return;
+    switch (key) {
+      case '2fa':
+        if (!secSettings.enforce2fa) {
+          setShow2faSetup(true);
+          setup2fa();
+        } else {
+          updateSettingsMutation.mutate({ enforce2fa: false });
+          toast.success('2FA enforcement disabled');
+        }
+        break;
+      case 'session-timeout':
+        updateSettingsMutation.mutate({
+          sessionTimeoutEnabled: !secSettings.sessionTimeoutEnabled,
+        });
+        toast.success(secSettings.sessionTimeoutEnabled ? 'Session timeout disabled' : 'Session timeout enabled');
+        break;
+      case 'audit-logs':
+        updateSettingsMutation.mutate({
+          auditLogsEnabled: !secSettings.auditLogsEnabled,
+        });
+        toast.success(secSettings.auditLogsEnabled ? 'Audit logs paused' : 'Audit logs enabled');
+        break;
+      case 'ip-whitelist':
+        updateSettingsMutation.mutate({
+          ipWhitelistEnabled: !secSettings.ipWhitelistEnabled,
+        });
+        toast.success(secSettings.ipWhitelistEnabled ? 'IP whitelist disabled' : 'IP whitelist enabled');
+        break;
+    }
+  };
+
+  const addIp = () => {
+    const trimmed = newIp.trim();
+    if (!trimmed) return;
+    const ipRegex = /^(\d{1,3}\.){3}\d{1,3}(\/\d{1,2})?$/;
+    if (!ipRegex.test(trimmed)) {
+      toast.error('Enter a valid IP address or CIDR range (e.g. 192.168.1.0/24)');
+      return;
+    }
+    const current = secSettings?.whitelistedIps ?? [];
+    if (current.includes(trimmed)) {
+      toast.error('IP already whitelisted');
+      return;
+    }
+    updateSettingsMutation.mutate({ whitelistedIps: [...current, trimmed] });
+    setNewIp('');
+    toast.success('IP added to whitelist');
+  };
+
+  const removeIp = (ip: string) => {
+    const current = secSettings?.whitelistedIps ?? [];
+    updateSettingsMutation.mutate({ whitelistedIps: current.filter((i) => i !== ip) });
+    toast.success('IP removed from whitelist');
+  };
+
+  const features = [
     {
       key: '2fa',
       title: 'Two-Factor Authentication (2FA)',
       description: 'Add an extra layer of security using an authenticator app.',
       icon: Shield,
-      status: twoFaEnabled ? 'Enabled' : 'Disabled',
-      enabled: twoFaEnabled,
+      status: secSettings?.enforce2fa ? 'Enabled' : 'Disabled',
+      enabled: secSettings?.enforce2fa ?? false,
     },
     {
       key: 'session-timeout',
       title: 'Session Timeout',
       description: 'Automatically sign out inactive users after a set period.',
       icon: Clock,
-      status: sessionTimeout ? 'Enabled' : 'Disabled',
-      enabled: sessionTimeout,
+      status: secSettings?.sessionTimeoutEnabled ? 'Enabled' : 'Disabled',
+      enabled: secSettings?.sessionTimeoutEnabled ?? false,
     },
     {
       key: 'audit-logs',
       title: 'Audit Logs',
       description: 'Track all user actions — logins, changes, deletions — with timestamps and IPs.',
       icon: Activity,
-      status: auditLogs ? 'Enabled' : 'Paused',
-      enabled: auditLogs,
+      status: secSettings?.auditLogsEnabled ? 'Enabled' : 'Paused',
+      enabled: secSettings?.auditLogsEnabled ?? true,
     },
     {
       key: 'ip-whitelist',
       title: 'IP Whitelist',
       description: 'Restrict access to specific IP addresses or CIDR ranges.',
       icon: Globe,
-      status: ipWhitelist ? 'Enabled' : 'Inactive',
-      enabled: ipWhitelist,
+      status: secSettings?.ipWhitelistEnabled ? 'Enabled' : 'Inactive',
+      enabled: secSettings?.ipWhitelistEnabled ?? false,
     },
   ];
-
-  const handleToggle = (key: string) => {
-    switch (key) {
-      case '2fa':
-        if (!twoFaEnabled) {
-          setShow2faSetup(true);
-          setup2fa();
-        } else {
-          setTwoFaEnabled(false);
-          toast.success('2FA disabled');
-        }
-        break;
-      case 'session-timeout':
-        setSessionTimeout((v) => {
-          toast.success(v ? 'Session timeout disabled' : 'Session timeout enabled');
-          return !v;
-        });
-        break;
-      case 'audit-logs':
-        setAuditLogs((v) => {
-          toast.success(v ? 'Audit logs paused' : 'Audit logs enabled');
-          return !v;
-        });
-        break;
-      case 'ip-whitelist':
-        setIpWhitelist((v) => {
-          toast.success(v ? 'IP whitelist disabled' : 'IP whitelist enabled');
-          return !v;
-        });
-        break;
-    }
-  };
 
   const statusColor = (status: string) => {
     switch (status) {
       case 'Enabled': return 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400';
-      case 'Disabled': return 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400';
       case 'Paused': return 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400';
-      case 'Inactive': return 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400';
-      default: return 'bg-slate-100 text-slate-500';
+      default: return 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400';
     }
   };
 
@@ -160,7 +182,7 @@ export default function SecuritySettingsPage() {
 
       {/* Security Feature Cards */}
       <div className="space-y-3">
-        {securityFeatures.map((feature) => {
+        {features.map((feature) => {
           const Icon = feature.icon;
           return (
             <div
@@ -178,7 +200,7 @@ export default function SecuritySettingsPage() {
                   </span>
                 </div>
                 <p className="text-sm text-muted-foreground mt-0.5">{feature.description}</p>
-                {feature.key === '2fa' && !twoFaEnabled && !show2faSetup && (
+                {feature.key === '2fa' && !secSettings?.enforce2fa && !show2faSetup && (
                   <button
                     onClick={() => { setShow2faSetup(true); setup2fa(); }}
                     className="mt-2 text-sm font-medium text-primary hover:underline flex items-center gap-1"
@@ -189,6 +211,7 @@ export default function SecuritySettingsPage() {
               </div>
               <button
                 onClick={() => handleToggle(feature.key)}
+                disabled={updateSettingsMutation.isPending}
                 className={cn(
                   'relative h-6 w-11 rounded-full transition-colors flex-shrink-0',
                   feature.enabled ? 'bg-primary' : 'bg-slate-300 dark:bg-slate-600',
@@ -206,7 +229,78 @@ export default function SecuritySettingsPage() {
         })}
       </div>
 
-      {/* 2FA Setup Modal Inline */}
+      {/* Session Timeout Config */}
+      {secSettings?.sessionTimeoutEnabled && (
+        <div className="rounded-2xl border border-border bg-surface p-6 space-y-3">
+          <h2 className="font-semibold text-foreground flex items-center gap-2">
+            <Clock className="h-4 w-4 text-primary" /> Session Timeout Duration
+          </h2>
+          <p className="text-sm text-muted-foreground">
+            Users will be automatically signed out after this period of inactivity.
+          </p>
+          <div className="flex items-center gap-3">
+            <select
+              value={secSettings.sessionTimeoutMinutes}
+              onChange={(e) => {
+                updateSettingsMutation.mutate({ sessionTimeoutMinutes: parseInt(e.target.value, 10) });
+                toast.success('Timeout duration updated');
+              }}
+              className="rounded-lg border border-border bg-surface px-3 py-2 text-sm text-foreground"
+            >
+              <option value={5}>5 minutes</option>
+              <option value={15}>15 minutes</option>
+              <option value={30}>30 minutes</option>
+              <option value={60}>1 hour</option>
+              <option value={120}>2 hours</option>
+              <option value={240}>4 hours</option>
+              <option value={480}>8 hours</option>
+            </select>
+          </div>
+        </div>
+      )}
+
+      {/* IP Whitelist Management */}
+      {secSettings?.ipWhitelistEnabled && (
+        <div className="rounded-2xl border border-border bg-surface p-6 space-y-4">
+          <h2 className="font-semibold text-foreground flex items-center gap-2">
+            <Globe className="h-4 w-4 text-primary" /> Whitelisted IP Addresses
+          </h2>
+          <p className="text-sm text-muted-foreground">
+            Only requests from these IPs will be allowed. Leave empty to allow all.
+          </p>
+          <div className="flex gap-2">
+            <Input
+              placeholder="e.g. 192.168.1.0/24 or 10.0.0.1"
+              value={newIp}
+              onChange={(e) => setNewIp(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && addIp()}
+              className="flex-1"
+            />
+            <Button size="sm" onClick={addIp} leftIcon={<Plus className="h-3.5 w-3.5" />}>
+              Add
+            </Button>
+          </div>
+          {(secSettings.whitelistedIps ?? []).length > 0 ? (
+            <div className="space-y-1.5">
+              {secSettings.whitelistedIps.map((ip) => (
+                <div key={ip} className="flex items-center justify-between rounded-lg bg-surface-muted px-3 py-2">
+                  <code className="text-sm font-mono text-foreground">{ip}</code>
+                  <button
+                    onClick={() => removeIp(ip)}
+                    className="rounded p-1 text-muted-foreground hover:text-danger hover:bg-danger/10 transition-colors"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-xs text-muted-foreground italic">No IPs whitelisted yet. All IPs are currently allowed.</p>
+          )}
+        </div>
+      )}
+
+      {/* 2FA Setup */}
       {show2faSetup && (
         <div className="rounded-2xl border border-border bg-surface p-6 space-y-4">
           <div className="flex items-center gap-2">

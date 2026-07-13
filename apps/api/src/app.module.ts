@@ -42,6 +42,7 @@ import { BulkImportModule } from './modules/bulk-import/bulk-import.module';
 import { PlatformModule } from './modules/platform/platform.module';
 import { IntegrationsModule } from './modules/integrations/integrations.module';
 import { SecuritySettingsModule } from './modules/security-settings/security-settings.module';
+import { SubscriptionsModule } from './modules/subscriptions/subscriptions.module';
 
 @Module({
   imports: [
@@ -108,6 +109,7 @@ import { SecuritySettingsModule } from './modules/security-settings/security-set
     PlatformModule,
     IntegrationsModule,
     SecuritySettingsModule,
+    SubscriptionsModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },

@@ -148,6 +148,46 @@ export const securitySettingsApi = {
     apiPatch<SecuritySettings>('/security-settings', data),
 };
 
+// ─── Subscriptions ──────────────────────────────────────────────────────────
+
+export interface Plan {
+  id: string;
+  name: string;
+  tier: string;
+  price: number;
+  monthlyPrice: number | null;
+  yearlyPrice: number | null;
+  currency: string;
+  description: string | null;
+  maxUsers: number;
+  maxProjects: number;
+  maxFmsWorkflows: number;
+  features: string[];
+  isActive: boolean;
+}
+
+export interface Subscription {
+  id: string;
+  tenantId: string;
+  planId: string;
+  status: string;
+  currentPeriodStart: string;
+  currentPeriodEnd: string;
+  plan: Plan;
+}
+
+export interface MySubscription {
+  subscription: Subscription | null;
+  usage: { users: number; fmsWorkflows: number };
+}
+
+export const subscriptionsApi = {
+  listPlans: () => apiGet<Plan[]>('/subscriptions/plans'),
+  getMy: () => apiGet<MySubscription>('/subscriptions/my'),
+  changePlan: (planId: string) =>
+    apiPatch<Subscription>('/subscriptions/change-plan', { planId }),
+};
+
 // ─── Integrations ────────────────────────────────────────────────────────────
 
 export type IntegrationProvider =

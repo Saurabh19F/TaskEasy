@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, OnModuleInit, Logger } from '@nestjs/common';
 import { PassportModule } from '@nestjs/passport';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
@@ -26,4 +26,29 @@ import { PlatformJwtStrategy } from './strategies/platform-jwt.strategy';
   providers: [PlatformAuthService, PlatformService, PlatformJwtStrategy],
   exports: [PlatformAuthService, PlatformService, JwtModule],
 })
-export class PlatformModule {}
+export class PlatformModule implements OnModuleInit {
+  private readonly logger = new Logger(PlatformModule.name);
+
+  constructor(
+    private readonly authService: PlatformAuthService,
+    private readonly configService: ConfigService,
+  ) {}
+
+  async onModuleInit() {
+    const email = this.configService.get<string>(
+      'SEED_SUPER_ADMIN_EMAIL',
+      'superadmin@taskeasy.app',
+    );
+    const password = this.configService.get<string>(
+      'SEED_SUPER_ADMIN_PASSWORD',
+      'Admin@1234',
+    );
+
+    try {
+      await this.authService.createInitialSuperAdmin(email, password);
+      this.logger.log(`Platform super-admin seeded: ${email}`);
+    } catch (err) {
+      this.logger.warn(`Platform super-admin seed skipped: ${(err as Error).message}`);
+    }
+  }
+}

@@ -1504,6 +1504,109 @@ model Invoice {
   @@map("invoices")
 }
 
+model Payment {
+  id              String    @id @default(auto()) @map("_id") @db.ObjectId
+  tenantId        String    @db.ObjectId
+  invoiceId       String?   @db.ObjectId
+  amount          Float
+  currency        String    @default("USD")
+  method          String?
+  status          String    @default("PENDING")
+  transactionId   String?
+  paidAt          DateTime?
+  notes           String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([tenantId])
+  @@index([status])
+  @@map("payments")
+}
+
+model SupportTicket {
+  id              String    @id @default(auto()) @map("_id") @db.ObjectId
+  tenantId        String?   @db.ObjectId
+  userId          String?   @db.ObjectId
+  subject         String
+  description     String?
+  category        String?
+  priority        String    @default("MEDIUM")
+  status          String    @default("OPEN")
+  assignedTo      String?
+  internalNotes   String?
+  responseCount   Int       @default(0)
+  lastUpdatedAt   DateTime?
+  closedAt        DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([tenantId])
+  @@index([status])
+  @@map("supportTickets")
+}
+
+model SystemSetting {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  key         String   @unique
+  value       Json?
+  updatedById String?  @db.ObjectId
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("systemSettings")
+}
+
+model PlatformNotification {
+  id              String    @id @default(auto()) @map("_id") @db.ObjectId
+  title           String
+  body            String?
+  audience        String    @default("ALL_COMPANIES")
+  type            String    @default("SYSTEM_UPDATE")
+  channel         String    @default("IN_APP")
+  targetTenantIds String[]  @default([])
+  createdById     String?   @db.ObjectId
+  status          String    @default("SENT")
+  scheduledAt     DateTime?
+  sentAt          DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@map("platformNotifications")
+}
+
+model BackupJob {
+  id              String    @id @default(auto()) @map("_id") @db.ObjectId
+  scope           String    @default("FULL_PLATFORM")
+  frequency       String    @default("MANUAL")
+  status          String    @default("PENDING")
+  targetTenantId  String?   @db.ObjectId
+  requestedById   String?   @db.ObjectId
+  storageUrl      String?
+  startedAt       DateTime?
+  completedAt     DateTime?
+  errorMessage    String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@map("backupJobs")
+}
+
+model SecurityEvent {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  tenantId    String?  @db.ObjectId
+  userId      String?  @db.ObjectId
+  type        String
+  severity    String   @default("LOW")
+  description String?
+  ipAddress   String?
+  resolved    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([tenantId])
+  @@map("securityEvents")
+}
+
 // ============================================================
 // BULK IMPORT
 // ============================================================

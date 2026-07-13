@@ -9,7 +9,7 @@ import { usePlatformReports } from '@/hooks/usePlatform';
 import { formatNumber } from '@/lib/utils';
 
 export default function PlatformReportsPage() {
-  const { data: revenue = [] } = usePlatformReports('revenue');
+  const { data: revenue = [], isLoading: loadingRevenue, isError: revenueError } = usePlatformReports('revenue');
   const { data: companies = [], isLoading: loadingCompanies, isError: companiesError, refetch: refetchCompanies } = usePlatformReports('companies');
 
   const revenueObj = revenue as any;
@@ -23,12 +23,22 @@ export default function PlatformReportsPage() {
       title="Reports"
       description="Export revenue, company growth, subscription, and user reports."
     >
-      <div className="grid gap-4 md:grid-cols-4">
-        <StatCard label="Total Revenue" value={`$${formatNumber(totalRevenue)}`} icon={BarChart3} color="green" />
-        <StatCard label="Paid Revenue" value={`$${formatNumber(paidRevenue)}`} icon={BarChart3} color="blue" />
-        <StatCard label="Pending Revenue" value={`$${formatNumber(pendingRevenue)}`} icon={BarChart3} color="yellow" />
-        <StatCard label="Invoice Count" value={invoiceCount} icon={BarChart3} color="indigo" />
-      </div>
+      {loadingRevenue ? (
+        <div className="flex items-center justify-center py-8">
+          <div className="h-7 w-7 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+        </div>
+      ) : revenueError ? (
+        <div className="rounded-2xl border border-border bg-surface p-6 text-center text-sm text-red-600 dark:text-red-400">
+          Failed to load revenue data.
+        </div>
+      ) : (
+        <div className="grid gap-4 md:grid-cols-4">
+          <StatCard label="Total Revenue" value={`$${formatNumber(totalRevenue)}`} icon={BarChart3} color="green" />
+          <StatCard label="Paid Revenue" value={`$${formatNumber(paidRevenue)}`} icon={BarChart3} color="blue" />
+          <StatCard label="Pending Revenue" value={`$${formatNumber(pendingRevenue)}`} icon={BarChart3} color="yellow" />
+          <StatCard label="Invoice Count" value={invoiceCount} icon={BarChart3} color="indigo" />
+        </div>
+      )}
 
       <div className="grid gap-4 xl:grid-cols-2">
         <div className="panel-strong p-5">

@@ -109,7 +109,7 @@ export function DataTable<T extends Record<string, any>>({
 
   const SortIcon = ({ col }: { col: Column }) => {
     if (!col.sortable) return null;
-    if (sortKey !== col.key) return <ChevronsUpDown className="h-3.5 w-3.5 text-slate-400" />;
+    if (sortKey !== col.key) return <ChevronsUpDown className="h-3.5 w-3.5 text-muted-foreground" />;
     return sortDir === 'asc'
       ? <ChevronUp className="h-3.5 w-3.5 text-indigo-500" />
       : <ChevronDown className="h-3.5 w-3.5 text-indigo-500" />;

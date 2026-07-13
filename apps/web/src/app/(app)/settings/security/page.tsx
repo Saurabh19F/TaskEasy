@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Shield, ArrowLeft, LogOut, Smartphone, Clock, Activity, Globe,
-  Plus, Trash2,
+  Plus, Trash2, Loader2,
 } from 'lucide-react';
 import Link from 'next/link';
 import { apiGet, apiDelete } from '@/lib/axios';
@@ -21,7 +21,7 @@ export default function SecuritySettingsPage() {
   const [totpCode, setTotpCode] = useState('');
   const [newIp, setNewIp] = useState('');
 
-  const { data: secSettings } = useQuery({
+  const { data: secSettings, isLoading } = useQuery({
     queryKey: ['security-settings'],
     queryFn: securitySettingsApi.get,
   });
@@ -181,6 +181,11 @@ export default function SecuritySettingsPage() {
       </div>
 
       {/* Security Feature Cards */}
+      {isLoading ? (
+        <div className="flex justify-center py-12">
+          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        </div>
+      ) : (
       <div className="space-y-3">
         {features.map((feature) => {
           const Icon = feature.icon;
@@ -228,6 +233,7 @@ export default function SecuritySettingsPage() {
           );
         })}
       </div>
+      )}
 
       {/* Session Timeout Config */}
       {secSettings?.sessionTimeoutEnabled && (

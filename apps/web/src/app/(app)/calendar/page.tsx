@@ -4,7 +4,7 @@ import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { CalendarDays, ChevronLeft, ChevronRight } from 'lucide-react';
 import { apiGet } from '@/lib/axios';
-import { StatusBadge } from '@/components/ui/Badge';
+
 import { useActiveUsers } from '@/hooks/useUsers';
 
 interface CalendarEvent {
@@ -150,10 +150,10 @@ export default function CalendarPage() {
         ))}
       </div>
 
-      <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 overflow-hidden">
+      <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-surface overflow-hidden">
         <div className="grid grid-cols-7 border-b border-slate-200 dark:border-slate-700">
           {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((d) => (
-            <div key={d} className="py-2 text-center text-xs font-semibold text-slate-500">{d}</div>
+            <div key={d} className="py-2 text-center text-xs font-semibold text-slate-500 dark:text-slate-400">{d}</div>
           ))}
         </div>
 

@@ -199,7 +199,7 @@ export default function SubscriptionsPage() {
             const isPendingForThis = pendingRequest?.requestedPlanId === plan.id;
             const recommended = plan.tier === 'PRO';
             const features = planFeatures(plan);
-            const price = plan.monthlyPrice ?? plan.price;
+            const price = plan.monthlyPrice ?? plan.price ?? 0;
 
             return (
               <div

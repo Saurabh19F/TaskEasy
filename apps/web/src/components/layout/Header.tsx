@@ -156,7 +156,7 @@ export function Header({ onToggleSidebar }: HeaderProps) {
                 onChange={(e) => setSearchValue(e.target.value)}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && searchValue.trim()) {
-                    router.push('/reports');
+                    router.push(`/reports?q=${encodeURIComponent(searchValue)}`);
                   }
                 }}
                 placeholder="Search tasks, people, projects…"

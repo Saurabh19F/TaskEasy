@@ -13,7 +13,7 @@ import { getPlatformApiError } from '@/lib/platform-axios';
 
 export default function PlatformSystemSettingsPage() {
   const qc = useQueryClient();
-  const { data } = usePlatformSettings();
+  const { data, isLoading, isError } = usePlatformSettings();
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({
     'platform.name': '',
@@ -60,6 +60,13 @@ export default function PlatformSystemSettingsPage() {
       description="Manage branding, maintenance mode, integrations, and platform defaults."
       actions={<Button leftIcon={<Settings className="h-4 w-4" />} onClick={handleSave} loading={saving}>Save Changes</Button>}
     >
+      {isLoading ? (
+        <div className="flex items-center justify-center py-12">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+        </div>
+      ) : isError ? (
+        <div className="text-center py-12 text-red-600 dark:text-red-400">Failed to load settings. Please try again later.</div>
+      ) : (
       <div className="grid gap-4 xl:grid-cols-2">
         <div className="panel-strong p-5">
           <h2 className="text-sm font-semibold text-foreground">Branding</h2>
@@ -83,6 +90,7 @@ export default function PlatformSystemSettingsPage() {
           </div>
         </div>
       </div>
+      )}
     </PlatformPageFrame>
   );
 }

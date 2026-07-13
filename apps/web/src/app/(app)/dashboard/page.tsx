@@ -92,7 +92,7 @@ function ModuleCard({
   onStatClick: (key: DrilldownKey) => void;
 }) {
   if (loading) {
-    return <div className="h-44 rounded-2xl animate-pulse" style={{ background: 'linear-gradient(135deg,#E5E7EB,#F3F4F6)' }} />;
+    return <div className="h-44 rounded-2xl animate-pulse bg-surface-muted" />;
   }
 
   const stats: { status: 'total' | 'done' | 'pending' | 'delayed'; value: number; color: string; label: string }[] = [
@@ -103,11 +103,11 @@ function ModuleCard({
   ];
 
   return (
-    <div className="rounded-2xl p-5 bg-white border border-slate-100 shadow-[0_2px_12px_rgba(15,23,42,0.06)] relative overflow-hidden">
+    <div className="rounded-2xl p-5 bg-surface border border-border shadow-[0_2px_12px_rgba(15,23,42,0.06)] relative overflow-hidden">
       <div className="absolute top-0 left-0 right-0 h-1 rounded-t-2xl" style={{ background: cardGradient }} />
 
       <div className="flex items-start justify-between mb-4 mt-1">
-        <p className="text-sm font-semibold text-slate-700 leading-tight max-w-[65%]">{label}</p>
+        <p className="text-sm font-semibold text-foreground leading-tight max-w-[65%]">{label}</p>
         <div
           className="flex h-9 w-9 items-center justify-center rounded-xl"
           style={{ background: cardGradient, boxShadow: cardShadow }}
@@ -116,18 +116,18 @@ function ModuleCard({
         </div>
       </div>
 
-      <div className="grid grid-cols-4 gap-2 pt-3 border-t border-slate-100">
+      <div className="grid grid-cols-4 gap-2 pt-3 border-t border-border">
         {stats.map(({ status, value, color, label: statLabel }, i) => (
           <button
             key={status}
             onClick={() => onStatClick({ module: moduleKey, status, label: `${label} — ${statLabel}` })}
             className={cn(
-              'text-center rounded-lg py-1 transition-colors hover:bg-slate-50 cursor-pointer',
-              i > 0 && 'border-l border-slate-100',
+              'text-center rounded-lg py-1 transition-colors hover:bg-surface-muted cursor-pointer',
+              i > 0 && 'border-l border-border',
             )}
           >
             <p className={cn('text-2xl font-bold', color)}>{value}</p>
-            <p className="text-[10px] text-slate-400 mt-0.5">{statLabel}</p>
+            <p className="text-[10px] text-muted-foreground mt-0.5">{statLabel}</p>
           </button>
         ))}
       </div>
@@ -181,7 +181,7 @@ function ProjectWiseStatusTable({ rows, loading }: {
             <tbody className="divide-y divide-border">
               {rows.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="px-4 py-6 text-center text-slate-400">
+                  <td colSpan={8} className="px-4 py-6 text-center text-muted-foreground">
                     No project data available
                   </td>
                 </tr>
@@ -189,36 +189,36 @@ function ProjectWiseStatusTable({ rows, loading }: {
                 rows.map((row) => (
                   <tr key={row.projectId} className="hover:bg-surface-muted/70">
                     <td className="px-4 py-2.5">
-                      <p className="font-semibold text-slate-700">{row.projectName}</p>
+                      <p className="font-semibold text-foreground">{row.projectName}</p>
                       <div className="mt-1 h-1.5 w-24 overflow-hidden rounded-full bg-surface-muted">
                         <div
                           className="h-full rounded-full bg-primary"
                           style={{ width: `${Math.min(100, row.completion)}%` }}
                         />
                       </div>
-                      <p className="text-[10px] text-slate-400 mt-0.5">
+                      <p className="text-[10px] text-muted-foreground mt-0.5">
                         Completion: {row.completion.toFixed(1)}%
                       </p>
                     </td>
-                    <td className="px-2 py-2.5 text-center text-amber-600 font-semibold border-l border-slate-100">
+                    <td className="px-2 py-2.5 text-center text-amber-600 font-semibold border-l border-border">
                       {row.delegation.pending}
                     </td>
                     <td className="px-2 py-2.5 text-center text-green-600 font-semibold">
                       {row.delegation.done}
                     </td>
-                    <td className="px-2 py-2.5 text-center text-amber-600 font-semibold border-l border-slate-100">
+                    <td className="px-2 py-2.5 text-center text-amber-600 font-semibold border-l border-border">
                       {row.workRequest.pending}
                     </td>
                     <td className="px-2 py-2.5 text-center text-green-600 font-semibold">
                       {row.workRequest.done}
                     </td>
-                    <td className="px-2 py-2.5 text-center text-amber-600 font-semibold border-l border-slate-100">
+                    <td className="px-2 py-2.5 text-center text-amber-600 font-semibold border-l border-border">
                       {row.checklist?.pending ?? 0}
                     </td>
                     <td className="px-2 py-2.5 text-center text-green-600 font-semibold">
                       {row.checklist?.done ?? 0}
                     </td>
-                    <td className="px-4 py-2.5 text-center border-l border-slate-100">
+                    <td className="px-4 py-2.5 text-center border-l border-border">
                       <span className="text-indigo-600 font-semibold">{row.completion.toFixed(1)}%</span>
                     </td>
                   </tr>
@@ -264,24 +264,24 @@ function FmsWiseStatusTable({ rows, loading }: {
           <tbody className="divide-y divide-border">
             {rows.length === 0 ? (
               <tr>
-                <td colSpan={4} className="px-4 py-6 text-center text-slate-400">
+                <td colSpan={4} className="px-4 py-6 text-center text-muted-foreground">
                   No FMS data available
                 </td>
               </tr>
             ) : (
               rows.map((row) => (
                 <tr key={row.fmsId} className="hover:bg-surface-muted/70">
-                  <td className="px-4 py-2.5 font-medium text-slate-700">{row.fmsName}</td>
+                  <td className="px-4 py-2.5 font-medium text-foreground">{row.fmsName}</td>
                   <td className="px-3 py-2.5 text-center text-amber-600 font-semibold">{row.pending}</td>
                   <td className="px-3 py-2.5 text-center text-green-600 font-semibold">{row.done}</td>
-                  <td className="px-3 py-2.5 text-center text-slate-700 font-semibold">{row.total}</td>
+                  <td className="px-3 py-2.5 text-center text-foreground font-semibold">{row.total}</td>
                 </tr>
               ))
             )}
           </tbody>
           {rows.length > 0 && (
             <tfoot>
-              <tr className="border-t-2 border-slate-200 bg-slate-50 font-bold text-slate-700">
+              <tr className="border-t-2 border-border bg-surface-muted font-bold text-foreground">
                 <td className="px-4 py-2.5 text-xs uppercase tracking-wide">Grand Total</td>
                 <td className="px-3 py-2.5 text-center text-amber-600">{grandTotal.pending}</td>
                 <td className="px-3 py-2.5 text-center text-green-600">{grandTotal.done}</td>
@@ -314,24 +314,25 @@ function TasksTrendChart({ data, loading }: { data: DashboardData['trend']; load
       ) : (
         <ResponsiveContainer width="100%" height={180}>
           <LineChart data={chartData} margin={{ top: 4, right: 12, left: -20, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+            <CartesianGrid strokeDasharray="3 3" stroke="rgb(var(--border))" vertical={false} />
             <XAxis
               dataKey="label"
-              tick={{ fontSize: 10, fill: '#94a3b8' }}
+              tick={{ fontSize: 10, fill: 'rgb(var(--muted-foreground))' }}
               axisLine={false}
               tickLine={false}
             />
             <YAxis
-              tick={{ fontSize: 10, fill: '#94a3b8' }}
+              tick={{ fontSize: 10, fill: 'rgb(var(--muted-foreground))' }}
               axisLine={false}
               tickLine={false}
             />
             <Tooltip
               contentStyle={{
-                backgroundColor: '#fff',
-                border: '1px solid #e2e8f0',
+                backgroundColor: 'rgb(var(--surface))',
+                border: '1px solid rgb(var(--border))',
                 borderRadius: '10px',
                 fontSize: '11px',
+                color: 'rgb(var(--foreground))',
               }}
             />
             <Legend wrapperStyle={{ fontSize: 11 }} />
@@ -373,29 +374,29 @@ function PersonalPriorityList({
       <div className="max-h-64 divide-y divide-border overflow-y-auto">
         {loading ? (
           Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="h-14 mx-4 my-2 rounded-lg animate-pulse bg-slate-100" />
+            <div key={i} className="h-14 mx-4 my-2 rounded-lg animate-pulse bg-surface-muted" />
           ))
         ) : tasks.length === 0 ? (
-          <div className="px-4 py-8 text-center text-sm text-slate-500 dark:text-slate-400">
+          <div className="px-4 py-8 text-center text-sm text-muted-foreground">
             No priority tasks
           </div>
         ) : (
           tasks.map((task) => {
             const badge = MODULE_BADGE[task.type] ?? MODULE_BADGE.DELEGATION;
             return (
-              <div key={task.id} className="flex items-start gap-3 px-4 py-3 hover:bg-slate-50/70">
+              <div key={task.id} className="flex items-start gap-3 px-4 py-3 hover:bg-surface-muted/70">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <p className="text-sm font-semibold text-slate-800 truncate">{task.title}</p>
+                    <p className="text-sm font-semibold text-foreground truncate">{task.title}</p>
                     <span className={cn('rounded px-1.5 py-0.5 text-[10px] font-bold', badge.bg, badge.text)}>
                       {badge.label}
                     </span>
                   </div>
                   <div className="flex items-center gap-2 mt-0.5">
-                    <Clock className="h-3 w-3 text-slate-400 flex-shrink-0" />
-                    <p className="text-xs text-slate-500 dark:text-slate-400">{formatDate(task.dueDate)}</p>
+                    <Clock className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+                    <p className="text-xs text-muted-foreground">{formatDate(task.dueDate)}</p>
                     {task.fromSystem && (
-                      <span className="text-[10px] text-slate-400 italic">From: System</span>
+                      <span className="text-[10px] text-muted-foreground italic">From: System</span>
                     )}
                   </div>
                 </div>
@@ -404,7 +405,7 @@ function PersonalPriorityList({
                     <Check className="h-3 w-3 text-green-600" />
                   </div>
                 ) : (
-                  <div className="h-5 w-5 rounded-full border-2 border-slate-200 flex-shrink-0 mt-0.5" />
+                  <div className="h-5 w-5 rounded-full border-2 border-border flex-shrink-0 mt-0.5" />
                 )}
               </div>
             );
@@ -474,8 +475,8 @@ function CriticalTeamTasks({ data, loading }: { data: DashboardData | undefined;
               className={cn(
                 'px-3 py-1.5 rounded-t-lg text-xs font-semibold transition-colors border-b-2',
                 tab === key
-                  ? 'border-indigo-500 text-indigo-600 bg-indigo-50'
-                  : 'border-transparent text-slate-500 hover:text-slate-700 hover:bg-slate-50',
+                  ? 'border-indigo-500 text-indigo-600 bg-indigo-50 dark:text-indigo-400 dark:bg-indigo-900/30'
+                  : 'border-transparent text-muted-foreground hover:text-foreground hover:bg-surface-muted',
               )}
             >
               {label}
@@ -484,26 +485,26 @@ function CriticalTeamTasks({ data, loading }: { data: DashboardData | undefined;
         </div>
       </div>
 
-      <div className="divide-y divide-slate-50 max-h-72 overflow-y-auto">
+      <div className="divide-y divide-border max-h-72 overflow-y-auto">
         {loading ? (
           Array.from({ length: 2 }).map((_, i) => (
-            <div key={i} className="h-20 mx-4 my-3 rounded-lg animate-pulse bg-slate-100" />
+            <div key={i} className="h-20 mx-4 my-3 rounded-lg animate-pulse bg-surface-muted" />
           ))
         ) : grouped.length === 0 ? (
           <div className="px-4 py-10 text-center">
-            <AlertTriangle className="h-8 w-8 text-slate-200 mx-auto mb-2" />
-            <p className="text-sm text-slate-500 dark:text-slate-400">No critical tasks</p>
+            <AlertTriangle className="h-8 w-8 text-muted-foreground/30 mx-auto mb-2" />
+            <p className="text-sm text-muted-foreground">No critical tasks</p>
           </div>
         ) : (
           grouped.map(({ userName, tasks }) => (
             <div key={userName} className="px-4 py-3">
               {/* User header */}
               <div className="flex items-center gap-2 mb-2">
-                <div className="h-7 w-7 rounded-full bg-slate-200 flex items-center justify-center text-xs font-bold text-slate-600 flex-shrink-0">
+                <div className="h-7 w-7 rounded-full bg-surface-muted flex items-center justify-center text-xs font-bold text-muted-foreground flex-shrink-0">
                   {userName[0]?.toUpperCase() ?? '?'}
                 </div>
                 <div>
-                  <p className="text-xs font-semibold text-slate-700">{userName}</p>
+                  <p className="text-xs font-semibold text-foreground">{userName}</p>
                   <p className="text-[10px] text-red-500 font-medium">In critical hours</p>
                 </div>
               </div>
@@ -517,8 +518,8 @@ function CriticalTeamTasks({ data, loading }: { data: DashboardData | undefined;
                       <span className={cn('rounded px-1.5 py-0.5 text-[10px] font-bold flex-shrink-0', badge.bg, badge.text)}>
                         {badge.label}
                       </span>
-                      <p className="text-xs text-slate-700 font-medium truncate flex-1">{task.title}</p>
-                      <span className={cn('text-[10px] flex-shrink-0', overdue ? 'text-red-500' : 'text-slate-400')}>
+                      <p className="text-xs text-foreground font-medium truncate flex-1">{task.title}</p>
+                      <span className={cn('text-[10px] flex-shrink-0', overdue ? 'text-red-500' : 'text-muted-foreground')}>
                         {task.targetDate ? formatDate(task.targetDate) : 'No due date'}
                       </span>
                       {overdue && (
@@ -539,12 +540,12 @@ function CriticalTeamTasks({ data, loading }: { data: DashboardData | undefined;
 // ─── Drilldown Modal ──────────────────────────────────────────────────────────
 
 const STATUS_COLORS: Record<string, string> = {
-  COMPLETED:          'bg-green-100 text-green-700',
-  PENDING:            'bg-yellow-100 text-yellow-700',
-  IN_PROGRESS:        'bg-blue-100 text-blue-700',
-  REWORK:             'bg-orange-100 text-orange-700',
-  SEND_FOR_APPROVAL:  'bg-purple-100 text-purple-700',
-  LATE:               'bg-red-100 text-red-700',
+  COMPLETED:          'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
+  PENDING:            'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400',
+  IN_PROGRESS:        'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
+  REWORK:             'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400',
+  SEND_FOR_APPROVAL:  'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
+  LATE:               'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
 };
 
 function DrilldownModal({
@@ -566,16 +567,16 @@ function DrilldownModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px]" onClick={onClose} />
-      <div className="relative z-10 flex flex-col w-full max-w-4xl max-h-[85vh] rounded-2xl bg-white shadow-[0_32px_80px_-20px_rgba(15,23,42,0.35)] overflow-hidden">
+      <div className="relative z-10 flex flex-col w-full max-w-4xl max-h-[85vh] rounded-2xl bg-surface shadow-[0_32px_80px_-20px_rgba(15,23,42,0.35)] overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 bg-slate-50/70">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-border bg-surface-muted/70">
           <div>
-            <h2 className="text-base font-semibold text-slate-800">{drilldown.label}</h2>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{rows.length} record{rows.length !== 1 ? 's' : ''}</p>
+            <h2 className="text-base font-semibold text-foreground">{drilldown.label}</h2>
+            <p className="text-xs text-muted-foreground mt-0.5">{rows.length} record{rows.length !== 1 ? 's' : ''}</p>
           </div>
           <button
             onClick={onClose}
-            className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition-colors"
+            className="rounded-lg p-1.5 text-muted-foreground hover:bg-surface-muted hover:text-foreground transition-colors"
           >
             <X className="h-5 w-5" />
           </button>
@@ -589,13 +590,13 @@ function DrilldownModal({
             </div>
           ) : rows.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-40 gap-2">
-              <CheckSquare className="h-8 w-8 text-slate-200" />
-              <p className="text-sm text-slate-500 dark:text-slate-400">No records found</p>
+              <CheckSquare className="h-8 w-8 text-muted-foreground/30" />
+              <p className="text-sm text-muted-foreground">No records found</p>
             </div>
           ) : (
             <table className="w-full text-sm">
-              <thead className="sticky top-0 bg-slate-50 border-b border-slate-100">
-                <tr className="text-xs text-slate-500 uppercase tracking-wide">
+              <thead className="sticky top-0 bg-surface-muted border-b border-border">
+                <tr className="text-xs text-muted-foreground uppercase tracking-wide">
                   <th className="text-left px-4 py-3 font-semibold">Title</th>
                   <th className="text-left px-3 py-3 font-semibold">Assigned To</th>
                   {drilldown.module !== 'checklist' && drilldown.module !== 'fms' && (
@@ -608,28 +609,28 @@ function DrilldownModal({
                   <th className="text-left px-3 py-3 font-semibold">Status</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-50">
+              <tbody className="divide-y divide-border">
                 {rows.map((row) => {
                   const overdue = row.dueDate ? isOverdue(row.dueDate) : false;
                   return (
-                    <tr key={row.id} className="hover:bg-slate-50/70 transition-colors">
-                      <td className="px-4 py-3 font-medium text-slate-800 max-w-[200px]">
+                    <tr key={row.id} className="hover:bg-surface-muted/70 transition-colors">
+                      <td className="px-4 py-3 font-medium text-foreground max-w-[200px]">
                         <p className="truncate" title={row.title}>{row.title}</p>
                         {row.priority && (
-                          <span className="text-[10px] text-slate-400 font-normal">{row.priority}</span>
+                          <span className="text-[10px] text-muted-foreground font-normal">{row.priority}</span>
                         )}
                       </td>
-                      <td className="px-3 py-3 text-slate-600">{row.assignedTo}</td>
+                      <td className="px-3 py-3 text-muted-foreground">{row.assignedTo}</td>
                       {drilldown.module !== 'checklist' && drilldown.module !== 'fms' && (
-                        <td className="px-3 py-3 text-slate-600">{row.assignedBy ?? '—'}</td>
+                        <td className="px-3 py-3 text-muted-foreground">{row.assignedBy ?? '—'}</td>
                       )}
-                      <td className="px-3 py-3 text-slate-500 max-w-[120px] truncate">{row.project}</td>
-                      <td className={cn('px-3 py-3 text-xs font-medium', overdue ? 'text-red-500' : 'text-slate-500')}>
+                      <td className="px-3 py-3 text-muted-foreground max-w-[120px] truncate">{row.project}</td>
+                      <td className={cn('px-3 py-3 text-xs font-medium', overdue ? 'text-red-500' : 'text-muted-foreground')}>
                         {row.dueDate ? formatDate(row.dueDate) : '—'}
                         {overdue && <span className="ml-1 text-[10px] bg-red-100 text-red-600 px-1 rounded">Late</span>}
                       </td>
                       <td className="px-3 py-3">
-                        <span className={cn('rounded-full px-2 py-0.5 text-[11px] font-semibold', STATUS_COLORS[row.status] ?? 'bg-slate-100 text-slate-600')}>
+                        <span className={cn('rounded-full px-2 py-0.5 text-[11px] font-semibold', STATUS_COLORS[row.status] ?? 'bg-surface-muted text-muted-foreground')}>
                           {row.status.replace(/_/g, ' ')}
                         </span>
                       </td>
@@ -820,7 +821,7 @@ export default function DashboardPage() {
       )}
 
       {data?.lastUpdated && (
-        <p className="text-center text-xs text-slate-500 dark:text-slate-400">
+        <p className="text-center text-xs text-muted-foreground">
           Last updated: {new Date(data.lastUpdated).toLocaleTimeString()}
         </p>
       )}

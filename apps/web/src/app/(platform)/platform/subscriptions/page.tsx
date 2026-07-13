@@ -67,7 +67,7 @@ export default function PlatformSubscriptionsPage() {
           exportFilename="platform-subscriptions"
           rowKey={(row) => row.id}
           columns={[
-            { key: 'tenantId', header: 'Tenant ID' },
+            { key: 'tenant', header: 'Company', render: (_value: any, row: any) => row.tenant?.name ?? row.tenantId },
             { key: 'plan', header: 'Plan', render: (value) => value?.name ?? '—' },
             { key: 'status', header: 'Status', render: (value) => <StatusBadge status={value} /> },
             { key: 'currentPeriodStart', header: 'Start', render: (value) => formatDate(value) },

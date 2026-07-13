@@ -85,7 +85,7 @@ function CompanyModuleRow({ company }: { company: any }) {
         </div>
         <div className="flex items-center gap-3">
           <span className="text-sm" style={{ color: 'rgb(var(--contrast) / 0.65)' }}>{enabledCount}/{MODULES.length} enabled</span>
-          {expanded ? <ChevronUp className="h-4 w-4 text-contrast-65" /> : <ChevronDown className="h-4 w-4 text-contrast-65" />}
+          {expanded ? <ChevronUp className="h-4 w-4" style={{ color: 'rgb(var(--contrast) / 0.65)' }} /> : <ChevronDown className="h-4 w-4" style={{ color: 'rgb(var(--contrast) / 0.65)' }} />}
         </div>
       </button>
 
@@ -110,7 +110,7 @@ function CompanyModuleRow({ company }: { company: any }) {
                 <div className={`relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer items-center rounded-full transition-colors ${modules[module] ? 'bg-success' : 'bg-muted-foreground/30'}`}
                 >
                   <span
-                    className="inline-block h-3.5 w-3.5 rounded-full bg-white transition-transform"
+                    className="inline-block h-3.5 w-3.5 rounded-full bg-white dark:bg-slate-200 transition-transform"
                     style={{ transform: modules[module] ? 'translateX(18px)' : 'translateX(3px)' }}
                   />
                   <input
@@ -131,7 +131,7 @@ function CompanyModuleRow({ company }: { company: any }) {
 }
 
 export default function PlatformFeatureControlPage() {
-  const { data = [], isLoading } = usePlatformCompanies();
+  const { data = [], isLoading, isError } = usePlatformCompanies();
 
   return (
     <PlatformPageFrame
@@ -141,6 +141,8 @@ export default function PlatformFeatureControlPage() {
     >
       {isLoading ? (
         <div className="text-center py-12 text-muted-foreground">Loading companies...</div>
+      ) : isError ? (
+        <div className="text-center py-12 text-red-600 dark:text-red-400">Failed to load companies. Please try again later.</div>
       ) : data.length === 0 ? (
         <div className="text-center py-12 text-muted-foreground">No companies found.</div>
       ) : (

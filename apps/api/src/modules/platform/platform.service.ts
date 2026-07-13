@@ -775,7 +775,7 @@ export class PlatformService {
 
   async listSubscriptions() {
     const prisma = this.prisma as any;
-    return prisma.subscription.findMany({ include: { plan: true }, orderBy: { createdAt: 'desc' } });
+    return prisma.subscription.findMany({ include: { plan: true, tenant: { select: { id: true, name: true } } }, orderBy: { createdAt: 'desc' } });
   }
 
   async createSubscription(body: MaybeRecord, actor: PlatformJwtPayload) {

@@ -62,7 +62,16 @@ export default function PlatformNotificationsPage() {
             { key: 'audience', header: 'Audience' },
             { key: 'type', header: 'Type' },
             { key: 'channel', header: 'Channel', render: (value) => <Badge>{value}</Badge> },
-            { key: 'status', header: 'Status', render: (value) => <Badge className="bg-success/15 text-success-foreground">{value}</Badge> },
+            { key: 'status', header: 'Status', render: (value) => {
+              const cls = value === 'SENT' || value === 'DELIVERED'
+                ? 'bg-success/15 text-success-foreground'
+                : value === 'FAILED'
+                  ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                  : value === 'PENDING' || value === 'SCHEDULED'
+                    ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
+                    : 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300';
+              return <Badge className={cls}>{value}</Badge>;
+            } },
             { key: 'createdAt', header: 'Created', render: (value) => formatDate(value) },
           ]}
         />

@@ -63,9 +63,9 @@ export function HeroSection() {
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, delay: 0.1 }}
-          className="text-5xl md:text-7xl font-bold tracking-tight mb-6 bg-gradient-to-b from-foreground to-muted-foreground bg-clip-text text-transparent"
+          className="text-5xl md:text-7xl font-bold tracking-tight mb-6"
         >
-          Turn every responsibility
+          <span className="text-foreground">Turn every responsibility</span>
           <br />
           <span className="text-primary">into visible progress</span>
         </motion.h1>

@@ -6,6 +6,15 @@ import { useAuthStore } from '@/store/auth.store';
 import { usePlatformAuthStore } from '@/store/platform-auth.store';
 import { PublicNavbar } from '@/components/public/PublicNavbar';
 import { HeroSection } from '@/components/public/HeroSection';
+import { MetricsStrip } from '@/components/public/MetricsStrip';
+import { WorkflowSection } from '@/components/public/WorkflowSection';
+import { FeaturesSection } from '@/components/public/FeaturesSection';
+import { RoleBasedExperienceSection } from '@/components/public/RoleBasedExperienceSection';
+import { SecuritySection } from '@/components/public/SecuritySection';
+import { TestimonialsSection } from '@/components/public/TestimonialsSection';
+import { PricingSection } from '@/components/public/PricingSection';
+import { CTASection } from '@/components/public/CTASection';
+import { PublicFooter } from '@/components/public/PublicFooter';
 
 export default function LandingPage() {
   const router = useRouter();
@@ -22,33 +31,16 @@ export default function LandingPage() {
       <PublicNavbar />
       <main>
         <HeroSection />
-
-        {/* TODO: Add more sections */}
-        {/* - Live Product Proof Strip */}
-        {/* - Problem-to-Solution Section */}
-        {/* - Core Modules Ecosystem */}
-        {/* - Interactive Workflow Demo */}
-        {/* - Role-Based Experience Tabs */}
-        {/* - Automation Section */}
-        {/* - Analytics Preview */}
-        {/* - Security Section */}
-        {/* - Testimonials */}
-        {/* - Pricing Preview */}
-        {/* - Final CTA */}
-        {/* - Footer */}
-
-        {/* Placeholder for remaining sections */}
-        <section className="py-24 px-4 text-center">
-          <div className="max-w-5xl mx-auto">
-            <h2 className="text-4xl font-bold text-foreground mb-4">
-              More sections coming soon
-            </h2>
-            <p className="text-muted-foreground text-lg">
-              We're building additional landing page sections to showcase TaskEasy's full capabilities.
-            </p>
-          </div>
-        </section>
+        <MetricsStrip />
+        <WorkflowSection />
+        <FeaturesSection />
+        <RoleBasedExperienceSection />
+        <SecuritySection />
+        <TestimonialsSection />
+        <PricingSection />
+        <CTASection />
       </main>
+      <PublicFooter />
     </div>
   );
 }

@@ -165,7 +165,7 @@ export default function SubscriptionsPage() {
 
             <Button
               className="mt-5 w-full"
-              variant={activePlan === plan.key ? 'outline' : plan.recommended ? 'default' : 'outline'}
+              variant={activePlan === plan.key ? 'outline' : plan.recommended ? 'primary' : 'outline'}
               size="sm"
               disabled={activePlan === plan.key}
             >

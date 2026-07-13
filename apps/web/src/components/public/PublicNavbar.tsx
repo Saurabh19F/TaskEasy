@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { Menu, X, Sun, Moon } from 'lucide-react';
 import { LogoIcon } from '@/components/layout/Logo';
 import { Button } from '@/components/ui/Button';
-import { useTheme } from 'next-themes';
 
 const navItems = [
   { label: 'Product', href: '#product' },
@@ -18,7 +17,6 @@ const navItems = [
 export function PublicNavbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
-  const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -29,6 +27,20 @@ export function PublicNavbar() {
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  const toggleTheme = () => {
+    if (typeof document !== 'undefined') {
+      const html = document.documentElement;
+      const isDark = html.classList.contains('dark');
+      if (isDark) {
+        html.classList.remove('dark');
+        localStorage.setItem('theme', 'light');
+      } else {
+        html.classList.add('dark');
+        localStorage.setItem('theme', 'dark');
+      }
+    }
+  };
 
   if (!mounted) return null;
 
@@ -66,15 +78,12 @@ export function PublicNavbar() {
         <div className="flex items-center gap-3">
           {/* Theme Toggle */}
           <button
-            onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+            onClick={toggleTheme}
             className="p-2 rounded-lg hover:bg-surface-muted transition-colors"
             aria-label="Toggle theme"
           >
-            {theme === 'dark' ? (
-              <Sun className="h-5 w-5 text-amber-500" />
-            ) : (
-              <Moon className="h-5 w-5 text-slate-500" />
-            )}
+            <Sun className="h-5 w-5 text-amber-500 dark:hidden" />
+            <Moon className="h-5 w-5 text-slate-500 hidden dark:inline" />
           </button>
 
           {/* Company Login */}

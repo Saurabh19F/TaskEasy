@@ -1,17 +1,18 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { CalendarDays, ChevronLeft, ChevronRight } from 'lucide-react';
 import { apiGet } from '@/lib/axios';
 import { StatusBadge } from '@/components/ui/Badge';
+import { useActiveUsers } from '@/hooks/useUsers';
 
 interface CalendarEvent {
   id: string;
   title: string;
   date: string;
   status: string;
-  type: 'DELEGATION' | 'WORK_REQUEST' | 'CHECKLIST' | 'FMS' | 'HOLIDAY';
+  type: 'DELEGATION' | 'WORK_REQUEST' | 'CHECKLIST' | 'FMS' | 'HOLIDAY' | 'BIRTHDAY' | 'ANNIVERSARY';
 }
 
 const TYPE_COLORS: Record<string, string> = {
@@ -20,6 +21,8 @@ const TYPE_COLORS: Record<string, string> = {
   CHECKLIST: 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300',
   FMS: 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300',
   HOLIDAY: 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300',
+  BIRTHDAY: 'bg-pink-100 text-pink-700 dark:bg-pink-900/40 dark:text-pink-300',
+  ANNIVERSARY: 'bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300',
 };
 
 function getDaysInMonth(year: number, month: number) {
@@ -37,6 +40,39 @@ export default function CalendarPage() {
 
   const from = new Date(year, month, 1).toISOString();
   const to = new Date(year, month + 1, 0, 23, 59, 59).toISOString();
+
+  const { data: activeUsers = [] } = useActiveUsers();
+
+  const celebrationEvents: CalendarEvent[] = useMemo(() => {
+    const evts: CalendarEvent[] = [];
+    for (const u of activeUsers as any[]) {
+      if (u.dateOfBirth) {
+        const dob = new Date(u.dateOfBirth);
+        if (dob.getMonth() === month) {
+          evts.push({
+            id: `bday-${u.id}`,
+            title: `🎂 ${u.name}'s Birthday`,
+            date: new Date(year, month, dob.getDate()).toISOString(),
+            status: 'CELEBRATION',
+            type: 'BIRTHDAY',
+          });
+        }
+      }
+      if (u.anniversaryDate) {
+        const ann = new Date(u.anniversaryDate);
+        if (ann.getMonth() === month) {
+          evts.push({
+            id: `anniv-${u.id}`,
+            title: `🎉 ${u.name}'s Anniversary`,
+            date: new Date(year, month, ann.getDate()).toISOString(),
+            status: 'CELEBRATION',
+            type: 'ANNIVERSARY',
+          });
+        }
+      }
+    }
+    return evts;
+  }, [activeUsers, year, month]);
 
   const { data: events, isLoading } = useQuery({
     queryKey: ['calendar', year, month],
@@ -56,6 +92,7 @@ export default function CalendarPage() {
     ...(events?.workRequests ?? []),
     ...(events?.checklist ?? []),
     ...(events?.fms ?? []),
+    ...celebrationEvents,
   ];
 
   const holidayDays = new Set(

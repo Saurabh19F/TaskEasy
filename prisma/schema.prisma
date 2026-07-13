@@ -439,6 +439,7 @@ model User {
   avatarUrl           String?
   gender              String?
   dateOfBirth         DateTime?
+  anniversaryDate     DateTime?
   role                UserRole   @default(EMPLOYEE)
   status              UserStatus @default(ACTIVE)
   department          String?

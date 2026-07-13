@@ -3,7 +3,7 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Settings, Building2, Shield, Users, FolderKanban } from 'lucide-react';
+import { Settings, Building2, Shield, Users, FolderKanban, CreditCard } from 'lucide-react';
 import { useAuthStore } from '@/store/auth.store';
 
 const SETTING_SECTIONS = [
@@ -18,6 +18,12 @@ const SETTING_SECTIONS = [
     icon: Shield,
     title: 'Security',
     description: 'Password policy, two-factor authentication, and active sessions.',
+  },
+  {
+    href: '/settings/subscriptions',
+    icon: CreditCard,
+    title: 'Subscriptions',
+    description: 'Manage your plan, user limits, and FMS limits.',
   },
   {
     href: '/admin',

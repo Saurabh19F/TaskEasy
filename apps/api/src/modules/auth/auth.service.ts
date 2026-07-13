@@ -499,7 +499,7 @@ export class AuthService {
         secret:
           this.configService.get('JWT_ACCESS_SECRET') ??
           this.configService.get('JWT_SECRET'),
-        expiresIn: this.configService.get('JWT_ACCESS_EXPIRY', '15m'),
+        expiresIn: this.configService.get('JWT_ACCESS_EXPIRY', '7d'),
       }),
       this.jwtService.signAsync(
         { sub: userId, tenantId },

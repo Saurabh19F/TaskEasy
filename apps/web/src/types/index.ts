@@ -44,6 +44,7 @@ export interface User {
   avatarUrl?: string;
   gender?: Gender;
   dateOfBirth?: string;
+  anniversaryDate?: string;
   address?: string;
   city?: string;
   state?: string;

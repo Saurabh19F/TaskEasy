@@ -6,7 +6,7 @@ import {
   RefreshCw, Check, Clock, AlertTriangle, X,
   Users,
 } from 'lucide-react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid,
   Tooltip, Legend, ResponsiveContainer,
@@ -647,6 +647,13 @@ function DrilldownModal({
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
+function isTodayMatch(dateStr?: string | null) {
+  if (!dateStr) return false;
+  const d = new Date(dateStr);
+  const now = new Date();
+  return d.getMonth() === now.getMonth() && d.getDate() === now.getDate();
+}
+
 function useGreeting(name?: string) {
   const [now, setNow] = useState(new Date());
   useEffect(() => {
@@ -669,11 +676,20 @@ export default function DashboardPage() {
   const firstName = user?.name ?? 'there';
   const { greeting, timeStr, dayStr } = useGreeting(firstName);
 
-  const qc = useQueryClient();
   const { data: users = [] }    = useActiveUsers();
   const { data: projects = [] } = useActiveProjects();
 
-  const { data, isLoading, isFetching, isError, refetch } = useQuery({
+  const currentUserBirthday = useMemo(() => {
+    const me = users.find((u: any) => u.id === (user?.sub ?? user?.id));
+    return me ? isTodayMatch(me.dateOfBirth) : false;
+  }, [users, user]);
+
+  const currentUserAnniversary = useMemo(() => {
+    const me = users.find((u: any) => u.id === (user?.sub ?? user?.id));
+    return me ? isTodayMatch(me.anniversaryDate) : false;
+  }, [users, user]);
+
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['dashboard', view, filters],
     queryFn: () => dashboardApi.get(view, {
       period:    filters.period,
@@ -701,7 +717,10 @@ export default function DashboardPage() {
         {/* Greeting + time */}
         <div className="flex-1 min-w-0">
           <p className="text-base font-bold text-foreground truncate">
-            {greeting}, <span className="text-primary">{firstName}</span> 👋
+            {greeting}, <span className="text-primary">{firstName}</span>
+            {currentUserBirthday && <span className="ml-1.5">🎂 Happy Birthday!</span>}
+            {currentUserAnniversary && <span className="ml-1.5">🎉 Happy Anniversary!</span>}
+            {!currentUserBirthday && !currentUserAnniversary && <span className="ml-0.5">👋</span>}
           </p>
           <p className="text-xs text-muted-foreground mt-0.5">{dayStr} &nbsp;·&nbsp; {timeStr}</p>
         </div>
@@ -728,17 +747,13 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {/* Refresh */}
+        {/* Hard Refresh */}
         <button
-          onClick={() => {
-            qc.invalidateQueries({ queryKey: ['dashboard'] });
-            refetch();
-          }}
-          disabled={isFetching}
-          className="flex items-center gap-1.5 rounded-xl border border-border bg-surface-muted px-3 py-1.5 text-xs font-medium text-muted-foreground transition-all hover:border-primary/25 hover:text-primary disabled:opacity-60"
-          title="Hard refresh — clears all cached data"
+          onClick={() => window.location.reload()}
+          className="flex items-center gap-1.5 rounded-xl border border-border bg-surface-muted px-3 py-1.5 text-xs font-medium text-muted-foreground transition-all hover:border-primary/25 hover:text-primary"
+          title="Hard refresh — reloads the entire page"
         >
-          <RefreshCw className={cn('h-3.5 w-3.5', isFetching && 'animate-spin')} />
+          <RefreshCw className="h-3.5 w-3.5" />
           Refresh
         </button>
       </div>

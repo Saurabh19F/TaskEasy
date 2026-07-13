@@ -106,9 +106,94 @@
     --radius: 0.5rem;
   }
 
+  .dark {
+    color-scheme: dark;
+
+    --background:    15  23  42;
+    --on-background: 241 245 249;
+
+    --surface:                     30  41  59;
+    --surface-dim:                 15  23  42;
+    --surface-bright:              51  65  85;
+    --surface-container-lowest:    15  23  42;
+    --surface-container-low:       30  41  59;
+    --surface-container:           51  65  85;
+    --surface-container-high:      71  85 105;
+    --surface-container-highest:  100 116 139;
+
+    --foreground:          241 245 249;
+    --on-surface:          241 245 249;
+    --on-surface-variant:  148 163 184;
+
+    --inverse-surface:     241 245 249;
+    --inverse-on-surface:   15  23  42;
+
+    --border:            51  65  85;
+    --outline:          100 116 139;
+    --outline-variant:   51  65  85;
+    --input:             51  65  85;
+
+    --primary:           96 165 250;
+    --on-primary:        15  23  42;
+    --primary-container: 30  64 175;
+    --on-primary-container: 219 234 254;
+    --primary-foreground: 15  23  42;
+    --surface-tint:      96 165 250;
+    --inverse-primary:   37  99 235;
+    --primary-fixed:     30  64 175;
+    --primary-fixed-dim: 37  99 235;
+    --on-primary-fixed: 219 234 254;
+
+    --secondary:        52 211 153;
+    --on-secondary:     15  23  42;
+    --secondary-container: 6 95 64;
+    --on-secondary-container: 167 243 208;
+    --accent:           34 211 238;
+    --accent-foreground: 14 116 144;
+
+    --tertiary:        251 191  36;
+    --on-tertiary:      15  23  42;
+    --tertiary-container: 120 53 0;
+    --on-tertiary-container: 253 230 138;
+
+    --muted:            51  65  85;
+    --muted-foreground: 148 163 184;
+    --card:             30  41  59;
+    --card-foreground:  241 245 249;
+    --surface-strong:   51  65  85;
+    --surface-muted:    30  41  59;
+
+    --error:           248 113 113;
+    --on-error:         15  23  42;
+    --error-container:  127  29  29;
+    --on-error-container: 254 202 202;
+    --danger:          248 113 113;
+    --danger-foreground: 15  23  42;
+
+    --success:         52 211 153;
+    --success-foreground: 15  23  42;
+
+    --warning:         251 191  36;
+    --warning-foreground: 15  23  42;
+
+    --sidebar-bg:        15  23  42;
+    --sidebar-text:     255 255 255;
+    --sidebar-active-bg: 96 165 250;
+    --sidebar-active-text: 15 23 42;
+    --sidebar-hover-bg: 255 255 255;
+
+    --shadow-1: none;
+    --shadow-2: 0 1px 3px rgba(0,0,0,0.3), 0 1px 2px rgba(0,0,0,0.2);
+    --shadow-3: 0 4px 12px -2px rgba(0,0,0,0.4), 0 2px 4px -2px rgba(0,0,0,0.3);
+  }
+
   html {
     color-scheme: light;
     scroll-behavior: smooth;
+  }
+
+  html.dark {
+    color-scheme: dark;
   }
 
   * {

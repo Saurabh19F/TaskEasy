@@ -5,10 +5,9 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
-  Menu, RefreshCw, Bell, ChevronDown, User, Key, LogOut,
+  Menu, Bell, ChevronDown, User, Key, LogOut,
   Plus, Search, Briefcase, FolderKanban, Users, ListTodo, Sun, Moon,
 } from 'lucide-react';
-import { useQueryClient } from '@tanstack/react-query';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/store/auth.store';
 import { useNotificationStore } from '@/store/notification.store';
@@ -61,12 +60,11 @@ export function Header({ onToggleSidebar }: HeaderProps) {
   const [profileOpen, setProfileOpen] = useState(false);
   const [quickOpen, setQuickOpen] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [refreshing, setRefreshing] = useState(false);
+
   const [searchValue, setSearchValue] = useState('');
   const [darkMode, setDarkMode] = useState(false);
   const profileRef = useRef<HTMLDivElement>(null);
   const quickRef = useRef<HTMLDivElement>(null);
-  const qc = useQueryClient();
   const { user } = useAuthStore();
   const { mutate: logout } = useLogout();
 
@@ -103,12 +101,6 @@ export function Header({ onToggleSidebar }: HeaderProps) {
   }, []);
 
   const crumbs = useMemo(() => deriveCrumbs(pathname), [pathname]);
-
-  const handleRefresh = async () => {
-    setRefreshing(true);
-    await qc.invalidateQueries();
-    setTimeout(() => setRefreshing(false), 800);
-  };
 
   const iconBtn =
     'inline-flex items-center justify-center rounded-md border border-border bg-surface p-2 text-muted-foreground transition-colors duration-100 hover:bg-surface-muted hover:text-foreground';
@@ -220,11 +212,6 @@ export function Header({ onToggleSidebar }: HeaderProps) {
             </AnimatePresence>
           </div>
 
-          {/* Refresh */}
-          <button onClick={handleRefresh} className={iconBtn} aria-label="Refresh data">
-            <RefreshCw className={cn('h-4 w-4', refreshing && 'animate-spin')} />
-          </button>
-
           {/* Theme toggle */}
           <button onClick={toggleTheme} className={iconBtn} aria-label="Toggle dark mode">
             {darkMode ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
@@ -250,9 +237,13 @@ export function Header({ onToggleSidebar }: HeaderProps) {
               onClick={() => setProfileOpen((o) => !o)}
               className="flex items-center gap-2 rounded-md border border-border bg-surface px-2 py-1.5 transition-colors duration-100 hover:bg-surface-muted"
             >
-              <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-[11px] font-semibold text-contrast">
-                {user?.name?.[0]?.toUpperCase() ?? 'U'}
-              </div>
+              {user?.avatarUrl ? (
+                <img src={user.avatarUrl} alt="" className="h-6 w-6 rounded-full object-cover" />
+              ) : (
+                <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-[11px] font-semibold text-contrast">
+                  {user?.name?.[0]?.toUpperCase() ?? 'U'}
+                </div>
+              )}
               <span className="hidden max-w-[110px] truncate text-sm font-medium text-foreground sm:block">
                 {user?.name}
               </span>
@@ -270,9 +261,13 @@ export function Header({ onToggleSidebar }: HeaderProps) {
                 >
                   <div className={dropdownHeader}>
                     <div className="flex items-center gap-2.5">
-                      <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-primary text-xs font-semibold text-contrast">
-                        {user?.name?.[0]?.toUpperCase() ?? 'U'}
-                      </div>
+                      {user?.avatarUrl ? (
+                        <img src={user.avatarUrl} alt="" className="h-8 w-8 flex-shrink-0 rounded-full object-cover" />
+                      ) : (
+                        <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-primary text-xs font-semibold text-contrast">
+                          {user?.name?.[0]?.toUpperCase() ?? 'U'}
+                        </div>
+                      )}
                       <div className="min-w-0">
                         <p className="truncate text-sm font-medium text-foreground">{user?.name}</p>
                         <p className="truncate text-xs text-muted-foreground">{user?.email}</p>

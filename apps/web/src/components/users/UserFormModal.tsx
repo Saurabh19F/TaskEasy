@@ -27,6 +27,7 @@ export interface UserFormValues {
   role: Role;
   gender: Gender | '';
   dateOfBirth: string;
+  anniversaryDate: string;
   avatarUrl: string;
   department: string;
   designation: string;
@@ -55,6 +56,7 @@ const DEFAULT_FORM: UserFormValues = {
   role: 'EMPLOYEE',
   gender: '',
   dateOfBirth: '',
+  anniversaryDate: '',
   avatarUrl: '',
   department: '',
   designation: '',
@@ -140,6 +142,7 @@ function buildUserFormSchema(mode: 'create' | 'edit') {
       role: z.string().min(1, 'Role is required') as z.ZodType<Role>,
       gender: z.string().min(1, 'Gender is required'),
       dateOfBirth: z.string().min(1, 'Date of birth is required'),
+      anniversaryDate: z.string().optional(),
       avatarUrl: z.string().optional(),
       department: z.string().trim().min(1, 'Department is required'),
       designation: z.string().trim().min(1, 'Designation is required'),
@@ -294,6 +297,7 @@ export function UserFormModal({
             {GENDER_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
           </Select>
           <Input label="Date of Birth *" type="date" error={errors.dateOfBirth?.message} {...register('dateOfBirth')} />
+          <Input label="Anniversary Date" type="date" {...register('anniversaryDate')} />
           <Input label="Employee ID" value={formatEmployeeId(initialValues?.employeeId)} disabled readOnly />
         </div>
 

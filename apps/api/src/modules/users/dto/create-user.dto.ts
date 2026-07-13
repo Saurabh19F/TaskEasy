@@ -57,6 +57,11 @@ export class CreateUserDto {
   @IsDateString()
   dateOfBirth: string;
 
+  @ApiPropertyOptional({ example: '2020-06-15', description: 'Anniversary date YYYY-MM-DD' })
+  @IsOptional()
+  @IsDateString()
+  anniversaryDate?: string;
+
   @ApiProperty({ example: 'SecurePass@123', minLength: 8 })
   @IsString()
   @MinLength(8)
@@ -193,6 +198,11 @@ export class UpdateUserDto {
   @IsOptional()
   @IsDateString()
   joiningDate?: string;
+
+  @ApiPropertyOptional({ example: '2020-06-15', description: 'Anniversary date YYYY-MM-DD' })
+  @IsOptional()
+  @IsDateString()
+  anniversaryDate?: string;
 
   @ApiPropertyOptional()
   @IsOptional()

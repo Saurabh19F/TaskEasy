@@ -330,7 +330,8 @@ model Tenant {
   attachments         Attachment[]
   bulkImportBatches   BulkImportBatch[]
 
-  securitySettings SecuritySettings?
+  securitySettings   SecuritySettings?
+  planChangeRequests PlanChangeRequest[]
 
   @@map("tenants")
 }
@@ -379,7 +380,9 @@ model Plan {
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 
-  subscriptions Subscription[]
+  subscriptions          Subscription[]
+  planChangeCurrentRefs  PlanChangeRequest[] @relation("PlanChangeCurrent")
+  planChangeRequestRefs  PlanChangeRequest[] @relation("PlanChangeRequested")
 
   @@map("plans")
 }
@@ -404,6 +407,28 @@ model Subscription {
   plan   Plan   @relation(fields: [planId], references: [id])
 
   @@map("subscriptions")
+}
+
+model PlanChangeRequest {
+  id              String   @id @default(auto()) @map("_id") @db.ObjectId
+  tenantId        String   @db.ObjectId
+  requestedById   String   @db.ObjectId
+  currentPlanId   String   @db.ObjectId
+  requestedPlanId String   @db.ObjectId
+  reason          String?
+  status          String   @default("PENDING") // PENDING, APPROVED, REJECTED
+  reviewedById    String?
+  reviewNote      String?
+  reviewedAt      DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  tenant        Tenant @relation(fields: [tenantId], references: [id])
+  requestedBy   User   @relation("PlanChangeRequester", fields: [requestedById], references: [id])
+  currentPlan   Plan   @relation("PlanChangeCurrent", fields: [currentPlanId], references: [id])
+  requestedPlan Plan   @relation("PlanChangeRequested", fields: [requestedPlanId], references: [id])
+
+  @@map("plan_change_requests")
 }
 
 model TenantFeatureFlag {
@@ -513,6 +538,7 @@ model User {
   hierarchiesAsAdmin   Hierarchy[]           @relation("HierarchyAdmin")
   auditLogsAsActor     AuditLog[]            @relation("AuditLogActor")
   bulkImportBatches    BulkImportBatch[]     @relation("BulkImportUploader")
+  planChangeRequests   PlanChangeRequest[]   @relation("PlanChangeRequester")
 
   @@unique([tenantId, email])
   @@unique([tenantId, employeeId])

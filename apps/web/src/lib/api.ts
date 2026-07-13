@@ -176,16 +176,34 @@ export interface Subscription {
   plan: Plan;
 }
 
+export interface PlanChangeRequest {
+  id: string;
+  tenantId: string;
+  currentPlanId: string;
+  requestedPlanId: string;
+  reason: string | null;
+  status: string;
+  reviewNote: string | null;
+  reviewedAt: string | null;
+  createdAt: string;
+  currentPlan: Plan;
+  requestedPlan: Plan;
+}
+
 export interface MySubscription {
   subscription: Subscription | null;
   usage: { users: number; fmsWorkflows: number };
+  pendingRequest: PlanChangeRequest | null;
 }
 
 export const subscriptionsApi = {
   listPlans: () => apiGet<Plan[]>('/subscriptions/plans'),
   getMy: () => apiGet<MySubscription>('/subscriptions/my'),
-  changePlan: (planId: string) =>
-    apiPatch<Subscription>('/subscriptions/change-plan', { planId }),
+  requestChange: (planId: string, reason?: string) =>
+    apiPost<PlanChangeRequest>('/subscriptions/request-change', { planId, reason }),
+  cancelRequest: (requestId: string) =>
+    apiPatch<PlanChangeRequest>(`/subscriptions/requests/${requestId}/cancel`, {}),
+  listRequests: () => apiGet<PlanChangeRequest[]>('/subscriptions/requests'),
 };
 
 // ─── Integrations ────────────────────────────────────────────────────────────

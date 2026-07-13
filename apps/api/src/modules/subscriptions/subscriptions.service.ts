@@ -30,59 +30,77 @@ export class SubscriptionsService {
       where: { tenantId },
     });
 
+    const pendingRequest = await this.prisma.planChangeRequest.findFirst({
+      where: { tenantId, status: 'PENDING' },
+      include: { requestedPlan: true, currentPlan: true },
+      orderBy: { createdAt: 'desc' },
+    });
+
     return {
       subscription,
       usage: { users: userCount, fmsWorkflows: fmsCount },
+      pendingRequest,
     };
   }
 
-  async changePlan(tenantId: string, planId: string) {
-    const plan = await this.prisma.plan.findUnique({ where: { id: planId } });
+  async requestPlanChange(
+    tenantId: string,
+    userId: string,
+    requestedPlanId: string,
+    reason?: string,
+  ) {
+    const plan = await this.prisma.plan.findUnique({ where: { id: requestedPlanId } });
     if (!plan) throw new NotFoundException('Plan not found');
     if (!plan.isActive) throw new BadRequestException('Plan is no longer available');
 
-    const userCount = await this.prisma.user.count({
-      where: { tenantId, status: 'ACTIVE' },
+    const subscription = await this.prisma.subscription.findUnique({
+      where: { tenantId },
     });
-    if (userCount > plan.maxUsers) {
+    if (!subscription) throw new BadRequestException('No active subscription found');
+
+    if (subscription.planId === requestedPlanId) {
+      throw new BadRequestException('You are already on this plan');
+    }
+
+    const existing = await this.prisma.planChangeRequest.findFirst({
+      where: { tenantId, status: 'PENDING' },
+    });
+    if (existing) {
       throw new BadRequestException(
-        `You have ${userCount} active users but this plan allows only ${plan.maxUsers}. Remove users first.`,
+        'You already have a pending plan change request. Please wait for it to be reviewed.',
       );
     }
 
-    const fmsCount = await this.prisma.fmsWorkflow.count({
-      where: { tenantId },
-    });
-    if (fmsCount > plan.maxFmsWorkflows) {
-      throw new BadRequestException(
-        `You have ${fmsCount} FMS workflows but this plan allows only ${plan.maxFmsWorkflows}. Remove workflows first.`,
-      );
-    }
-
-    const now = new Date();
-    const periodEnd = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
-
-    const subscription = await this.prisma.subscription.upsert({
-      where: { tenantId },
-      update: {
-        planId: plan.id,
-        status: 'ACTIVE',
-        currentPeriodStart: now,
-        currentPeriodEnd: periodEnd,
-        planSnapshot: plan as any,
-      },
-      create: {
+    return this.prisma.planChangeRequest.create({
+      data: {
         tenantId,
-        planId: plan.id,
-        status: 'ACTIVE',
-        currentPeriodStart: now,
-        currentPeriodEnd: periodEnd,
-        autoRenew: true,
-        planSnapshot: plan as any,
+        requestedById: userId,
+        currentPlanId: subscription.planId,
+        requestedPlanId,
+        reason,
       },
-      include: { plan: true },
+      include: { requestedPlan: true, currentPlan: true },
     });
+  }
 
-    return subscription;
+  async cancelRequest(tenantId: string, requestId: string) {
+    const request = await this.prisma.planChangeRequest.findFirst({
+      where: { id: requestId, tenantId, status: 'PENDING' },
+    });
+    if (!request) throw new NotFoundException('Pending request not found');
+
+    return this.prisma.planChangeRequest.update({
+      where: { id: requestId },
+      data: { status: 'CANCELLED', reviewedAt: new Date() },
+    });
+  }
+
+  async listMyRequests(tenantId: string) {
+    return this.prisma.planChangeRequest.findMany({
+      where: { tenantId },
+      include: { requestedPlan: true, currentPlan: true, requestedBy: { select: { name: true, email: true } } },
+      orderBy: { createdAt: 'desc' },
+      take: 20,
+    });
   }
 }

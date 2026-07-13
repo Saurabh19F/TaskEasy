@@ -118,6 +118,32 @@ export class PlatformController {
     return this.platformService.deletePlan(id, user);
   }
 
+  @Get('plan-change-requests')
+  @RequirePermissions(PERMISSIONS.PLATFORM_SUBSCRIPTIONS_MANAGE)
+  listPlanChangeRequests(@Query() query: any) {
+    return this.platformService.listPlanChangeRequests(query);
+  }
+
+  @Patch('plan-change-requests/:id/approve')
+  @RequirePermissions(PERMISSIONS.PLATFORM_SUBSCRIPTIONS_MANAGE)
+  approvePlanChangeRequest(
+    @Param('id') id: string,
+    @Body() body: any,
+    @CurrentPlatformUser() user: PlatformJwtPayload,
+  ) {
+    return this.platformService.approvePlanChangeRequest(id, user, body.note);
+  }
+
+  @Patch('plan-change-requests/:id/reject')
+  @RequirePermissions(PERMISSIONS.PLATFORM_SUBSCRIPTIONS_MANAGE)
+  rejectPlanChangeRequest(
+    @Param('id') id: string,
+    @Body() body: any,
+    @CurrentPlatformUser() user: PlatformJwtPayload,
+  ) {
+    return this.platformService.rejectPlanChangeRequest(id, user, body.note);
+  }
+
   @Get('subscriptions')
   @RequirePermissions(PERMISSIONS.PLATFORM_SUBSCRIPTIONS_MANAGE)
   listSubscriptions() {

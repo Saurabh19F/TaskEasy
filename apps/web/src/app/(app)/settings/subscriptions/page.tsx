@@ -1,12 +1,16 @@
 'use client';
 
+import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Check, CreditCard, Users, GitBranch, Loader2 } from 'lucide-react';
+import {
+  ArrowLeft, Check, CreditCard, Users, GitBranch, Loader2,
+  Clock, CheckCircle, XCircle, Send,
+} from 'lucide-react';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
 import { Button } from '@/components/ui/Button';
 import { subscriptionsApi, type Plan } from '@/lib/api';
-import { cn } from '@/lib/utils';
+import { cn, formatDate } from '@/lib/utils';
 
 const TIER_ORDER: Record<string, number> = { STARTER: 0, PRO: 1, ENTERPRISE: 2 };
 
@@ -26,8 +30,17 @@ function planFeatures(plan: Plan): string[] {
   return f;
 }
 
+const STATUS_STYLES: Record<string, { icon: any; color: string; label: string }> = {
+  PENDING: { icon: Clock, label: 'Pending Review', color: 'text-amber-600 bg-amber-100 dark:text-amber-400 dark:bg-amber-900/30' },
+  APPROVED: { icon: CheckCircle, label: 'Approved', color: 'text-green-600 bg-green-100 dark:text-green-400 dark:bg-green-900/30' },
+  REJECTED: { icon: XCircle, label: 'Rejected', color: 'text-red-600 bg-red-100 dark:text-red-400 dark:bg-red-900/30' },
+  CANCELLED: { icon: XCircle, label: 'Cancelled', color: 'text-slate-500 bg-slate-100 dark:text-slate-400 dark:bg-slate-800' },
+};
+
 export default function SubscriptionsPage() {
   const qc = useQueryClient();
+  const [reasonPlanId, setReasonPlanId] = useState<string | null>(null);
+  const [reason, setReason] = useState('');
 
   const { data: plans = [], isLoading: plansLoading } = useQuery({
     queryKey: ['subscription-plans'],
@@ -39,20 +52,39 @@ export default function SubscriptionsPage() {
     queryFn: subscriptionsApi.getMy,
   });
 
-  const changePlanMutation = useMutation({
-    mutationFn: (planId: string) => subscriptionsApi.changePlan(planId),
+  const { data: requests = [] } = useQuery({
+    queryKey: ['my-plan-requests'],
+    queryFn: subscriptionsApi.listRequests,
+  });
+
+  const requestMutation = useMutation({
+    mutationFn: ({ planId, reason: r }: { planId: string; reason?: string }) =>
+      subscriptionsApi.requestChange(planId, r),
     onSuccess: () => {
-      toast.success('Plan changed successfully');
+      toast.success('Plan change request submitted. Waiting for Platform Admin approval.');
+      setReasonPlanId(null);
+      setReason('');
       qc.invalidateQueries({ queryKey: ['my-subscription'] });
+      qc.invalidateQueries({ queryKey: ['my-plan-requests'] });
     },
     onError: (err: any) => {
-      toast.error(err?.response?.data?.message ?? 'Failed to change plan');
+      toast.error(err?.response?.data?.message ?? 'Failed to submit request');
+    },
+  });
+
+  const cancelMutation = useMutation({
+    mutationFn: (requestId: string) => subscriptionsApi.cancelRequest(requestId),
+    onSuccess: () => {
+      toast.success('Request cancelled');
+      qc.invalidateQueries({ queryKey: ['my-subscription'] });
+      qc.invalidateQueries({ queryKey: ['my-plan-requests'] });
     },
   });
 
   const currentPlanId = myData?.subscription?.planId;
   const usage = myData?.usage;
   const subscription = myData?.subscription;
+  const pendingRequest = myData?.pendingRequest;
 
   const sortedPlans = [...plans].sort(
     (a, b) => (TIER_ORDER[a.tier] ?? 99) - (TIER_ORDER[b.tier] ?? 99),
@@ -65,6 +97,19 @@ export default function SubscriptionsPage() {
     return (TIER_ORDER[plan.tier] ?? 99) > (TIER_ORDER[subscription.plan.tier] ?? 99);
   };
 
+  const handleRequestClick = (planId: string) => {
+    if (pendingRequest) {
+      toast.error('You already have a pending request. Cancel it first to request a different plan.');
+      return;
+    }
+    setReasonPlanId(planId);
+  };
+
+  const submitRequest = () => {
+    if (!reasonPlanId) return;
+    requestMutation.mutate({ planId: reasonPlanId, reason: reason || undefined });
+  };
+
   return (
     <div className="max-w-5xl space-y-6">
       <div className="flex items-center gap-3">
@@ -75,7 +120,7 @@ export default function SubscriptionsPage() {
         <h1 className="text-xl font-bold text-foreground">Subscriptions</h1>
       </div>
 
-      {/* Current usage */}
+      {/* Current plan & usage */}
       {subscription && usage && (
         <div className="rounded-2xl border border-border bg-surface p-5 space-y-2">
           <h2 className="font-semibold text-foreground">
@@ -89,7 +134,7 @@ export default function SubscriptionsPage() {
               {subscription.status}
             </span>
           </h2>
-          <div className="flex items-center gap-6 text-sm text-muted-foreground">
+          <div className="flex items-center gap-6 text-sm text-muted-foreground flex-wrap">
             <div className="flex items-center gap-1.5">
               <Users className="h-3.5 w-3.5" />
               <span className="font-semibold text-foreground">{usage.users}</span>
@@ -107,8 +152,36 @@ export default function SubscriptionsPage() {
         </div>
       )}
 
+      {/* Pending request banner */}
+      {pendingRequest && (
+        <div className="rounded-2xl border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/20 p-4 flex items-center justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2">
+              <Clock className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+              <span className="font-semibold text-foreground">Pending Plan Change Request</span>
+            </div>
+            <p className="text-sm text-muted-foreground mt-1">
+              Request to switch from <strong>{pendingRequest.currentPlan?.name}</strong> to{' '}
+              <strong>{pendingRequest.requestedPlan?.name}</strong>
+              {pendingRequest.reason && <> — "{pendingRequest.reason}"</>}
+            </p>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Submitted {formatDate(pendingRequest.createdAt)} · Awaiting Platform Admin approval
+            </p>
+          </div>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => cancelMutation.mutate(pendingRequest.id)}
+            loading={cancelMutation.isPending}
+          >
+            Cancel Request
+          </Button>
+        </div>
+      )}
+
       <p className="text-sm text-muted-foreground">
-        Choose the plan that best fits your organization. Upgrade or downgrade anytime.
+        Choose a plan and submit a request. Platform Admin will review and approve your plan change.
       </p>
 
       {isLoading ? (
@@ -123,6 +196,7 @@ export default function SubscriptionsPage() {
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
           {sortedPlans.map((plan) => {
             const isCurrent = plan.id === currentPlanId;
+            const isPendingForThis = pendingRequest?.requestedPlanId === plan.id;
             const recommended = plan.tier === 'PRO';
             const features = planFeatures(plan);
             const price = plan.monthlyPrice ?? plan.price;
@@ -181,19 +255,85 @@ export default function SubscriptionsPage() {
 
                 <Button
                   className="mt-5 w-full"
-                  variant={isCurrent ? 'outline' : recommended ? 'primary' : 'outline'}
+                  variant={isCurrent ? 'outline' : isPendingForThis ? 'outline' : recommended ? 'primary' : 'outline'}
                   size="sm"
-                  disabled={isCurrent || changePlanMutation.isPending}
-                  loading={changePlanMutation.isPending && changePlanMutation.variables === plan.id}
-                  onClick={() => {
-                    if (!isCurrent) changePlanMutation.mutate(plan.id);
-                  }}
+                  disabled={isCurrent || isPendingForThis || !!pendingRequest}
+                  onClick={() => handleRequestClick(plan.id)}
                 >
-                  {isCurrent ? 'Current Plan' : isUpgrade(plan) ? 'Upgrade' : 'Downgrade'}
+                  {isCurrent
+                    ? 'Current Plan'
+                    : isPendingForThis
+                      ? 'Request Pending...'
+                      : isUpgrade(plan)
+                        ? 'Request Upgrade'
+                        : 'Request Downgrade'}
                 </Button>
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* Reason modal */}
+      {reasonPlanId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="w-full max-w-md rounded-2xl border border-border bg-surface p-6 space-y-4 shadow-xl">
+            <h3 className="font-semibold text-foreground flex items-center gap-2">
+              <Send className="h-4 w-4 text-primary" />
+              Request Plan Change
+            </h3>
+            <p className="text-sm text-muted-foreground">
+              Your request will be sent to the Platform Admin for review. Optionally provide a reason.
+            </p>
+            <textarea
+              placeholder="Reason for plan change (optional)"
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              rows={3}
+              className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
+            />
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" size="sm" onClick={() => { setReasonPlanId(null); setReason(''); }}>
+                Cancel
+              </Button>
+              <Button size="sm" onClick={submitRequest} loading={requestMutation.isPending}>
+                Submit Request
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Request history */}
+      {requests.length > 0 && (
+        <div className="rounded-2xl border border-border bg-surface p-6 space-y-4">
+          <h2 className="font-semibold text-foreground">Request History</h2>
+          <div className="space-y-2">
+            {requests.map((req) => {
+              const style = STATUS_STYLES[req.status] ?? STATUS_STYLES.PENDING;
+              const Icon = style.icon;
+              return (
+                <div key={req.id} className="flex items-center justify-between rounded-lg bg-surface-muted px-4 py-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-sm font-medium text-foreground">
+                        {req.currentPlan?.name} &rarr; {req.requestedPlan?.name}
+                      </span>
+                      <span className={cn('flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold', style.color)}>
+                        <Icon className="h-3 w-3" />
+                        {style.label}
+                      </span>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {formatDate(req.createdAt)}
+                      {req.reason && <> · {req.reason}</>}
+                      {req.reviewNote && <> · Admin: "{req.reviewNote}"</>}
+                    </p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
     </div>

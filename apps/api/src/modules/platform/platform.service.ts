@@ -687,6 +687,92 @@ export class PlatformService {
     return { message: 'Plan deleted' };
   }
 
+  async listPlanChangeRequests(query: MaybeRecord = {}) {
+    const prisma = this.prisma as any;
+    const where: any = {};
+    if (query.status) where.status = String(query.status).toUpperCase();
+    return prisma.planChangeRequest.findMany({
+      where,
+      include: {
+        tenant: { select: { id: true, name: true, slug: true } },
+        requestedBy: { select: { id: true, name: true, email: true } },
+        currentPlan: true,
+        requestedPlan: true,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async approvePlanChangeRequest(requestId: string, actor: PlatformJwtPayload, note?: string) {
+    const prisma = this.prisma as any;
+    const request = await prisma.planChangeRequest.findUnique({
+      where: { id: requestId },
+      include: { requestedPlan: true },
+    });
+    if (!request) throw new NotFoundException('Plan change request not found');
+    if (request.status !== 'PENDING') throw new BadRequestException('Request is already ' + request.status);
+
+    const plan = request.requestedPlan;
+
+    const now = new Date();
+    const periodEnd = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+
+    await prisma.subscription.upsert({
+      where: { tenantId: request.tenantId },
+      update: {
+        planId: plan.id,
+        status: 'ACTIVE',
+        currentPeriodStart: now,
+        currentPeriodEnd: periodEnd,
+        planSnapshot: plan,
+      },
+      create: {
+        tenantId: request.tenantId,
+        planId: plan.id,
+        status: 'ACTIVE',
+        currentPeriodStart: now,
+        currentPeriodEnd: periodEnd,
+        autoRenew: true,
+        planSnapshot: plan,
+      },
+    });
+
+    const updated = await prisma.planChangeRequest.update({
+      where: { id: requestId },
+      data: {
+        status: 'APPROVED',
+        reviewedById: actor.sub,
+        reviewNote: note ?? null,
+        reviewedAt: new Date(),
+      },
+      include: { requestedPlan: true, currentPlan: true, tenant: { select: { name: true } } },
+    });
+
+    await this.recordAudit(actor, 'APPROVE_PLAN_CHANGE', request.tenantId, request.requestedById, request, updated);
+    return updated;
+  }
+
+  async rejectPlanChangeRequest(requestId: string, actor: PlatformJwtPayload, note?: string) {
+    const prisma = this.prisma as any;
+    const request = await prisma.planChangeRequest.findUnique({ where: { id: requestId } });
+    if (!request) throw new NotFoundException('Plan change request not found');
+    if (request.status !== 'PENDING') throw new BadRequestException('Request is already ' + request.status);
+
+    const updated = await prisma.planChangeRequest.update({
+      where: { id: requestId },
+      data: {
+        status: 'REJECTED',
+        reviewedById: actor.sub,
+        reviewNote: note ?? null,
+        reviewedAt: new Date(),
+      },
+      include: { requestedPlan: true, currentPlan: true, tenant: { select: { name: true } } },
+    });
+
+    await this.recordAudit(actor, 'REJECT_PLAN_CHANGE', request.tenantId, request.requestedById, request, updated);
+    return updated;
+  }
+
   async listSubscriptions() {
     const prisma = this.prisma as any;
     return prisma.subscription.findMany({ include: { plan: true }, orderBy: { createdAt: 'desc' } });

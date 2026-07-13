@@ -95,7 +95,9 @@ export default function CompanyLoginPage() {
         >
           <div className="mb-7 flex items-center gap-3">
             <div className="flex h-12 w-12 items-center justify-center rounded-xl" style={{ background: 'rgba(37, 99, 235, 0.15)' }}>
-              <LogoIcon className="h-6 w-6" style={{ color: '#60a5fa' }} />
+              <div style={{ color: '#60a5fa' }}>
+                <LogoIcon className="h-6 w-6" />
+              </div>
             </div>
             <div>
               <p className="text-xl font-semibold" style={{ color: '#f8fafc' }}>TaskEasy</p>

@@ -91,7 +91,9 @@ export default function PlatformLoginPage() {
         >
           <div className="mb-7 flex items-center gap-3">
             <div className="flex h-12 w-12 items-center justify-center rounded-xl" style={{ background: 'rgba(168, 85, 247, 0.15)' }}>
-              <Crown className="h-6 w-6" style={{ color: '#d8b4fe' }} />
+              <div style={{ color: '#d8b4fe' }}>
+                <Crown className="h-6 w-6" />
+              </div>
             </div>
             <div>
               <p className="text-xl font-semibold" style={{ color: '#f8fafc' }}>TaskEasy</p>

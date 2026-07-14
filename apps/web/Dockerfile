@@ -2,12 +2,15 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-COPY apps/web/package*.json ./apps/web/
 COPY package*.json ./
+COPY apps/web/package*.json ./apps/web/
 
 RUN npm ci --workspace apps/web
 
 COPY apps/web ./apps/web/
+
+ARG NEXT_PUBLIC_API_URL
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 
 RUN cd apps/web && npm run build
 

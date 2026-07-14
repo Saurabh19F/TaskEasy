@@ -1,25 +1,9 @@
 # TaskEasy — Production Stack for Hostinger VPS
-# MongoDB is hosted on Atlas — only Redis, API, and Web run here.
+# MongoDB on Atlas, Redis on host — only API and Web containers here.
 # Usage:
 #   docker compose -f docker-compose.prod.yml --env-file .env.production up -d --build
 
 services:
-
-  # ─── Redis ─────────────────────────────────────────────────────────────────
-  redis:
-    image: redis:7-alpine
-    container_name: taskeasy-redis
-    restart: unless-stopped
-    ports:
-      - '127.0.0.1:6379:6379'
-    command: redis-server --save 20 1 --loglevel warning
-    volumes:
-      - redis_data:/data
-    healthcheck:
-      test: ['CMD', 'redis-cli', 'ping']
-      interval: 10s
-      timeout: 3s
-      retries: 5
 
   # ─── NestJS API ────────────────────────────────────────────────────────────
   api:
@@ -31,11 +15,13 @@ services:
     restart: unless-stopped
     ports:
       - '127.0.0.1:4000:4000'
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     environment:
       NODE_ENV: production
       PORT: 4000
       DATABASE_URL: ${DATABASE_URL}
-      REDIS_HOST: redis
+      REDIS_HOST: host.docker.internal
       REDIS_PORT: 6379
       JWT_SECRET: ${JWT_SECRET}
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN}
@@ -52,9 +38,6 @@ services:
       SMTP_USER: ${SMTP_USER:-}
       SMTP_PASS: ${SMTP_PASS:-}
       EMAIL_FROM: ${EMAIL_FROM}
-    depends_on:
-      redis:
-        condition: service_healthy
 
   # ─── Next.js Frontend ─────────────────────────────────────────────────────
   web:
@@ -71,6 +54,3 @@ services:
       NEXT_PUBLIC_API_URL: ${FRONTEND_URL}/api
     depends_on:
       - api
-
-volumes:
-  redis_data:

@@ -16,7 +16,7 @@ export function CTASection() {
           transition={{ duration: 0.6 }}
           className="relative rounded-2xl overflow-hidden"
         >
-          <div className="absolute inset-0 bg-gradient-to-br from-primary via-primary to-accent" />
+          <div className="absolute inset-0 bg-gradient-to-br from-[#2563EB] via-[#1D4ED8] to-[#06B6D4]" />
           <div className="absolute inset-0 opacity-10">
             <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
               <defs>

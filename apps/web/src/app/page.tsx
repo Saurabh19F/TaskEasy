@@ -6,13 +6,8 @@ import { useAuthStore } from '@/store/auth.store';
 import { usePlatformAuthStore } from '@/store/platform-auth.store';
 import { PublicNavbar } from '@/components/public/PublicNavbar';
 import { HeroSection } from '@/components/public/HeroSection';
-import { MetricsStrip } from '@/components/public/MetricsStrip';
-import { WorkflowSection } from '@/components/public/WorkflowSection';
 import { FeaturesSection } from '@/components/public/FeaturesSection';
-import { RoleBasedExperienceSection } from '@/components/public/RoleBasedExperienceSection';
-import { SecuritySection } from '@/components/public/SecuritySection';
 import { TestimonialsSection } from '@/components/public/TestimonialsSection';
-import { PricingSection } from '@/components/public/PricingSection';
 import { CTASection } from '@/components/public/CTASection';
 import { PublicFooter } from '@/components/public/PublicFooter';
 
@@ -27,17 +22,12 @@ export default function LandingPage() {
   }, [isAuthenticated, isPlatformAuthenticated, router]);
 
   return (
-    <div className="bg-background text-foreground">
+    <div className="bg-white min-h-screen">
       <PublicNavbar />
       <main>
         <HeroSection />
-        <MetricsStrip />
-        <WorkflowSection />
         <FeaturesSection />
-        <RoleBasedExperienceSection />
-        <SecuritySection />
         <TestimonialsSection />
-        <PricingSection />
         <CTASection />
       </main>
       <PublicFooter />

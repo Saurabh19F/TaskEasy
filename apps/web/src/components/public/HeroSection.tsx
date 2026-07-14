@@ -1,187 +1,125 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { ArrowRight, Play } from 'lucide-react';
-import { Button } from '@/components/ui/Button';
-import { motion } from 'framer-motion';
 
 export function HeroSection() {
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
-  const containerRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
-      if (!containerRef.current) return;
-      const rect = containerRef.current.getBoundingClientRect();
-      setMousePosition({
-        x: (e.clientX - rect.left) / rect.width,
-        y: (e.clientY - rect.top) / rect.height,
-      });
-    };
-
-    window.addEventListener('mousemove', handleMouseMove);
-    return () => window.removeEventListener('mousemove', handleMouseMove);
-  }, []);
-
   return (
-    <section ref={containerRef} className="relative min-h-screen pt-24 pb-16 px-4 overflow-hidden">
-      {/* Gradient background */}
-      <div className="absolute inset-0 -z-10">
-        <div className="absolute inset-0 bg-gradient-to-b from-background via-surface to-background" />
-        <motion.div
-          className="absolute top-0 left-1/4 w-96 h-96 bg-primary/10 rounded-full blur-3xl"
-          animate={{
-            x: mousePosition.x * 20,
-            y: mousePosition.y * 20,
-          }}
-          transition={{ type: 'spring', stiffness: 50, damping: 30 }}
-        />
-        <motion.div
-          className="absolute bottom-0 right-1/4 w-96 h-96 bg-accent/10 rounded-full blur-3xl"
-          animate={{
-            x: -mousePosition.x * 20,
-            y: -mousePosition.y * 20,
-          }}
-          transition={{ type: 'spring', stiffness: 50, damping: 30 }}
-        />
-      </div>
+    <section className="relative overflow-hidden">
+      <div className="absolute inset-0 bg-gradient-to-b from-blue-50/80 to-white -z-10" />
 
-      <div className="max-w-5xl mx-auto text-center relative z-10">
-        {/* Trust badge */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-border bg-surface-container/50 backdrop-blur-sm mb-6"
-        >
-          <span className="text-xs font-medium text-primary">★ Trusted by 100+ companies</span>
-        </motion.div>
+      <div className="max-w-6xl mx-auto px-6 pt-16 pb-20">
+        <div className="grid lg:grid-cols-2 gap-12 items-center">
+          {/* Left content */}
+          <div>
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-blue-200 bg-blue-50 mb-6">
+              <span className="text-xs font-semibold text-[#2563EB] uppercase tracking-wide">New: Smart Workflows 2.0</span>
+            </div>
 
-        {/* Headline */}
-        <motion.h1
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, delay: 0.1 }}
-          className="text-5xl md:text-7xl font-bold tracking-tight mb-6"
-        >
-          <span className="text-foreground">Turn every responsibility</span>
-          <br />
-          <span className="text-primary">into visible progress</span>
-        </motion.h1>
+            <h1 className="text-4xl md:text-5xl font-bold text-gray-900 leading-tight mb-5">
+              Master your ops,<br />
+              one task at a time.
+            </h1>
 
-        {/* Subtitle */}
-        <motion.p
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, delay: 0.2 }}
-          className="text-lg text-muted-foreground max-w-2xl mx-auto mb-8"
-        >
-          TaskEasy brings tasks, delegations, checklists, workflows and team accountability into one intelligent work operating system.
-        </motion.p>
+            <p className="text-lg text-gray-500 mb-8 max-w-md">
+              TaskEasy is the work operating system designed to help you bring tasks, delegations, and accountability into one place.
+            </p>
 
-        {/* CTAs */}
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, delay: 0.3 }}
-          className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-12"
-        >
-          <Link href="/company/login">
-            <Button size="lg" className="gap-2">
-              Start Managing Work <ArrowRight className="h-5 w-5" />
-            </Button>
-          </Link>
-          <button className="flex items-center gap-2 px-6 py-3 rounded-lg border border-border hover:bg-surface-container transition-colors group">
-            <Play className="h-5 w-5 text-primary group-hover:text-primary" fill="currentColor" />
-            <span className="font-medium">Watch Demo</span>
-          </button>
-        </motion.div>
+            <div className="flex flex-wrap gap-3 mb-8">
+              <Link
+                href="/company/login"
+                className="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-[#2563EB] text-white text-sm font-medium hover:bg-[#1D4ED8] transition-colors"
+              >
+                Get Started for Free
+              </Link>
+              <button className="inline-flex items-center gap-2 px-6 py-3 rounded-lg border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
+                <Play className="h-4 w-4" fill="currentColor" />
+                Watch Demo
+              </button>
+            </div>
 
-        {/* Benefits */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.7, delay: 0.4 }}
-          className="flex flex-col sm:flex-row justify-center gap-6 text-sm text-muted-foreground"
-        >
-          <div className="flex items-center gap-2">
-            <span className="text-primary">✓</span> No credit card required
+            <div className="flex items-center gap-3">
+              <div className="flex -space-x-2">
+                <div className="w-8 h-8 rounded-full bg-gray-300 border-2 border-white" />
+                <div className="w-8 h-8 rounded-full bg-gray-400 border-2 border-white" />
+              </div>
+              <p className="text-sm text-gray-500">
+                Joined by <span className="font-semibold text-gray-900">12,000+</span> professionals this month.
+              </p>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="text-primary">✓</span> Setup in minutes
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-primary">✓</span> Free 14-day trial
-          </div>
-        </motion.div>
-      </div>
 
-      {/* Hero Visual - Workflow Animation */}
-      <motion.div
-        initial={{ opacity: 0, y: 50 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.9, delay: 0.5 }}
-        className="mt-16 max-w-4xl mx-auto"
-      >
-        <div className="rounded-2xl border border-border bg-surface-container/30 backdrop-blur-sm p-1 overflow-hidden">
-          {/* Workflow diagram */}
-          <svg className="w-full h-auto min-h-96" viewBox="0 0 1200 400" preserveAspectRatio="xMidYMid slice">
-            {/* Workflow nodes */}
-            {[
-              { x: 100, label: 'Request', color: '#2563EB' },
-              { x: 300, label: 'Assign', color: '#7C3AED' },
-              { x: 500, label: 'Execute', color: '#10B981' },
-              { x: 700, label: 'Review', color: '#F59E0B' },
-              { x: 900, label: 'Complete', color: '#06B6D4' },
-            ].map((node, idx) => (
-              <g key={idx}>
-                {/* Connecting line */}
-                {idx < 4 && (
-                  <motion.line
-                    x1={node.x + 30}
-                    y1={200}
-                    x2={[300, 500, 700, 900][idx] - 30}
-                    y2={200}
-                    stroke={node.color}
-                    strokeWidth="2"
-                    opacity="0.3"
-                    initial={{ pathLength: 0 }}
-                    animate={{ pathLength: 1 }}
-                    transition={{ duration: 2, delay: 0.6 + idx * 0.2 }}
-                  />
-                )}
-                {/* Node circle */}
-                <circle
-                  cx={node.x}
-                  cy={200}
-                  r="30"
-                  fill={node.color}
-                  opacity="0.1"
-                  stroke={node.color}
-                  strokeWidth="2"
-                />
-                <circle
-                  cx={node.x}
-                  cy={200}
-                  r="20"
-                  fill={node.color}
-                  opacity="0.8"
-                />
-                {/* Label */}
-                <text
-                  x={node.x}
-                  y={260}
-                  textAnchor="middle"
-                  className="text-sm font-medium fill-foreground"
-                >
-                  {node.label}
-                </text>
-              </g>
-            ))}
-          </svg>
+          {/* Right - Dashboard preview */}
+          <div className="relative">
+            <div className="rounded-xl border border-gray-200 bg-white shadow-2xl shadow-blue-500/10 overflow-hidden">
+              {/* Browser chrome */}
+              <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-100 bg-gray-50">
+                <div className="flex gap-1.5">
+                  <div className="w-3 h-3 rounded-full bg-red-400" />
+                  <div className="w-3 h-3 rounded-full bg-yellow-400" />
+                  <div className="w-3 h-3 rounded-full bg-green-400" />
+                </div>
+                <div className="flex-1 mx-4">
+                  <div className="h-6 rounded bg-gray-100 flex items-center px-3">
+                    <span className="text-xs text-gray-400">app.taskeasy.com</span>
+                  </div>
+                </div>
+              </div>
+              {/* Dashboard content */}
+              <div className="p-6">
+                <div className="flex items-center justify-between mb-6">
+                  <div>
+                    <p className="text-sm font-semibold text-gray-900">Welcome back, Alex!</p>
+                    <p className="text-xs text-gray-400">Dashboard</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-xs text-gray-400">Task Progress Overview</p>
+                  </div>
+                </div>
+
+                {/* Stats row */}
+                <div className="grid grid-cols-3 gap-4 mb-6">
+                  <div className="rounded-lg bg-blue-50 p-3">
+                    <p className="text-2xl font-bold text-[#2563EB]">48</p>
+                    <p className="text-xs text-gray-500">Active Tasks</p>
+                  </div>
+                  <div className="rounded-lg bg-green-50 p-3">
+                    <p className="text-2xl font-bold text-green-600">62%</p>
+                    <p className="text-xs text-gray-500">Completed</p>
+                  </div>
+                  <div className="rounded-lg bg-orange-50 p-3">
+                    <p className="text-2xl font-bold text-orange-500">5</p>
+                    <p className="text-xs text-gray-500">Pending</p>
+                  </div>
+                </div>
+
+                {/* Task list */}
+                <div className="space-y-3">
+                  {[
+                    { name: 'Design Review', dept: 'Design', status: 'In Progress', color: 'blue' },
+                    { name: 'Budget Approval', dept: 'Finance', status: 'Pending', color: 'orange' },
+                    { name: 'Deployment', dept: 'Engineering', status: 'Completed', color: 'green' },
+                  ].map((task) => (
+                    <div key={task.name} className="flex items-center justify-between py-2 px-3 rounded-lg bg-gray-50">
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">{task.name}</p>
+                        <p className="text-xs text-gray-400">{task.dept}</p>
+                      </div>
+                      <span className={`text-xs font-medium px-2 py-1 rounded-full ${
+                        task.color === 'blue' ? 'bg-blue-100 text-blue-700' :
+                        task.color === 'orange' ? 'bg-orange-100 text-orange-700' :
+                        'bg-green-100 text-green-700'
+                      }`}>
+                        {task.status}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
-      </motion.div>
+      </div>
     </section>
   );
 }

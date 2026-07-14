@@ -1,64 +1,46 @@
 'use client';
 
 import Link from 'next/link';
-import { LogoIcon } from '@/components/layout/Logo';
 
 const footerLinks = {
   Product: [
     { label: 'Features', href: '#features' },
     { label: 'Pricing', href: '#pricing' },
-    { label: 'Security', href: '#security' },
-    { label: 'Workflow', href: '#product' },
-    { label: 'Solutions', href: '#solutions' },
+    { label: 'Integrations', href: '#' },
   ],
-  Access: [
-    { label: 'Company Login', href: '/company/login' },
-    { label: 'Platform Login', href: '/platform/login' },
-    { label: 'Start Free Trial', href: '/company/login' },
-    { label: 'Request Demo', href: '#pricing' },
+  Legal: [
+    { label: 'Privacy Policy', href: '#' },
+    { label: 'Terms of Service', href: '#' },
+    { label: 'Cookie Policy', href: '#' },
   ],
-  Resources: [
-    { label: 'Role-Based Experience', href: '#solutions' },
-    { label: 'Core Modules', href: '#features' },
-    { label: 'Security Overview', href: '#security' },
-    { label: 'Pricing Plans', href: '#pricing' },
-  ],
-  Explore: [
-    { label: 'Workflow Demo', href: '#product' },
-    { label: 'Customer Proof', href: '#proof' },
-    { label: 'Free Trial', href: '/company/login' },
+  Contact: [
+    { label: 'Help Center', href: '#' },
+    { label: 'Contact Us', href: '#' },
+    { label: 'System Status', href: '#' },
   ],
 };
 
 export function PublicFooter() {
   return (
-    <footer className="border-t border-border bg-surface">
-      <div className="max-w-6xl mx-auto px-4 py-16">
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-8">
+    <footer className="border-t border-gray-100 bg-white">
+      <div className="max-w-6xl mx-auto px-6 py-12">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
           {/* Brand */}
-          <div className="col-span-2 md:col-span-1">
-            <Link href="/" className="flex items-center gap-2 mb-4">
-              <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-primary to-accent flex items-center justify-center">
-                <LogoIcon className="h-5 w-5 text-white" />
-              </div>
-              <span className="font-bold text-lg text-foreground">TaskEasy</span>
-            </Link>
-            <p className="text-sm text-muted-foreground mb-4">
-              The intelligent work operating system for modern teams.
+          <div>
+            <span className="text-lg font-bold text-gray-900">TaskEasy</span>
+            <p className="mt-2 text-sm text-gray-500">
+              Empowering professionals to work smarter, not harder.
             </p>
           </div>
 
           {/* Link columns */}
-          {Object.entries(footerLinks).map(([category, links]) => (
-            <div key={category}>
-              <h4 className="font-semibold text-foreground text-sm mb-4">{category}</h4>
+          {Object.entries(footerLinks).map(([title, links]) => (
+            <div key={title}>
+              <h4 className="font-semibold text-gray-900 mb-3 text-sm">{title}</h4>
               <ul className="space-y-2">
                 {links.map((link) => (
                   <li key={link.label}>
-                    <a
-                      href={link.href}
-                      className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-                    >
+                    <a href={link.href} className="text-sm text-gray-500 hover:text-gray-900 transition-colors">
                       {link.label}
                     </a>
                   </li>
@@ -70,18 +52,14 @@ export function PublicFooter() {
       </div>
 
       {/* Bottom bar */}
-      <div className="border-t border-border">
-        <div className="max-w-6xl mx-auto px-4 py-6 flex flex-col sm:flex-row justify-between items-center gap-4">
-          <p className="text-xs text-muted-foreground">
-            &copy; {new Date().getFullYear()} TaskEasy. All rights reserved.
+      <div className="border-t border-gray-100">
+        <div className="max-w-6xl mx-auto px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <p className="text-sm text-gray-400">
+            &copy; {new Date().getFullYear()} TaskEasy Inc. All rights reserved.
           </p>
-          <div className="flex items-center gap-4">
-            <Link href="/company/login" className="text-xs text-muted-foreground hover:text-foreground transition-colors">
-              Company Login
-            </Link>
-            <Link href="/platform/login" className="text-xs text-muted-foreground hover:text-foreground transition-colors">
-              Platform Admin
-            </Link>
+          <div className="flex items-center gap-6">
+            <a href="#" className="text-sm text-gray-400 hover:text-gray-600 transition-colors">Support</a>
+            <a href="#" className="text-sm text-gray-400 hover:text-gray-600 transition-colors">English (US)</a>
           </div>
         </div>
       </div>

@@ -74,6 +74,15 @@ export interface MisCardResult {
   };
 }
 
+type MisUserLite = { id: string; name: string; email: string; role: string };
+
+type MisTaskRow = {
+  status: string;
+  onTimeStatus: string | null;
+  delayDays: number | null;
+  reworkCount?: number | null;
+};
+
 @Injectable()
 export class MisCalculatorService {
   constructor(private prisma: PrismaService) {}
@@ -131,6 +140,90 @@ export class MisCalculatorService {
       }),
     ]);
 
+    return this.buildResult(user, delegation, workRequest, checklist, fmsTasks);
+  }
+
+  async calculateForUsers(
+    users: MisUserLite[],
+    tenantId: string,
+    from: Date,
+    to: Date,
+    projectId?: string,
+  ): Promise<MisCardResult[]> {
+    const userIds = users.map((user) => user.id);
+    if (userIds.length === 0) return [];
+
+    const dateFilter = { gte: from, lte: to };
+
+    const [delegation, workRequest, checklist, fmsTasks] = await Promise.all([
+      this.prisma.delegationTask.findMany({
+        where: {
+          tenantId,
+          delegatedToId: { in: userIds },
+          targetDate: dateFilter,
+          ...(projectId ? { projectId } : {}),
+        },
+        select: { delegatedToId: true, status: true, onTimeStatus: true, reworkCount: true, delayDays: true },
+      }),
+      this.prisma.workRequest.findMany({
+        where: {
+          tenantId,
+          requestedForId: { in: userIds },
+          deadlineDate: dateFilter,
+          ...(projectId ? { projectId } : {}),
+        },
+        select: { requestedForId: true, status: true, onTimeStatus: true, reworkCount: true, delayDays: true },
+      }),
+      this.prisma.checklistTask.findMany({
+        where: {
+          tenantId,
+          assignedToId: { in: userIds },
+          plannedDate: dateFilter,
+          ...(projectId ? { projectId } : {}),
+        },
+        select: { assignedToId: true, status: true, onTimeStatus: true, delayDays: true },
+      }),
+      this.prisma.fmsTask.findMany({
+        where: { tenantId, personId: { in: userIds }, plannedDate: dateFilter },
+        select: { personId: true, status: true, onTimeStatus: true, delayDays: true },
+      }),
+    ]);
+
+    const delByUser = new Map<string, MisTaskRow[]>();
+    const worByUser = new Map<string, MisTaskRow[]>();
+    const cheByUser = new Map<string, MisTaskRow[]>();
+    const fmsByUser = new Map<string, MisTaskRow[]>();
+
+    const push = (map: Map<string, MisTaskRow[]>, userId: string, row: MisTaskRow) => {
+      const rows = map.get(userId);
+      if (rows) {
+        rows.push(row);
+      } else {
+        map.set(userId, [row]);
+      }
+    };
+
+    for (const row of delegation) push(delByUser, row.delegatedToId, row);
+    for (const row of workRequest) push(worByUser, row.requestedForId, row);
+    for (const row of checklist) push(cheByUser, row.assignedToId, row);
+    for (const row of fmsTasks) push(fmsByUser, row.personId, row);
+
+    return users.map((user) => this.buildResult(
+      user,
+      delByUser.get(user.id) ?? [],
+      worByUser.get(user.id) ?? [],
+      cheByUser.get(user.id) ?? [],
+      fmsByUser.get(user.id) ?? [],
+    ));
+  }
+
+  private buildResult(
+    user: MisUserLite,
+    delegation: MisTaskRow[],
+    workRequest: MisTaskRow[],
+    checklist: MisTaskRow[],
+    fmsTasks: MisTaskRow[],
+  ): MisCardResult {
     // Keep each category separate so we can compute per-category breakdowns.
     const delRaw  = this.rawFromTasks(delegation.map((d) => ({ ...d, reworkCount: d.reworkCount ?? 0 })));
     const worRaw  = this.rawFromTasks(workRequest.map((d) => ({ ...d, reworkCount: d.reworkCount ?? 0 })));
@@ -161,7 +254,7 @@ export class MisCalculatorService {
     const activeTasksCount = delRaw.pending + worRaw.pending;
 
     return {
-      userId,
+      userId: user.id,
       name: user.name,
       email: user.email,
       role: user.role,
@@ -250,9 +343,9 @@ export class MisCalculatorService {
 
     const users = await this.prisma.user.findMany({
       where,
-      select: { id: true },
+      select: { id: true, name: true, email: true, role: true },
     });
 
-    return Promise.all(users.map((u) => this.calculateForUser(u.id, tenantId, from, to)));
+    return this.calculateForUsers(users, tenantId, from, to);
   }
 }

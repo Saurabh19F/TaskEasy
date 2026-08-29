@@ -50,8 +50,8 @@ export class PredictiveService {
 
   async predictTaskDelays(actor: JwtPayload): Promise<TaskRiskPrediction[]> {
     const cacheKey = `predictive:tasks:${actor.tenantId}`;
-    const cached = await this.redis.get(cacheKey);
-    if (cached) return JSON.parse(cached);
+    const cached = await this.redis.get<TaskRiskPrediction[]>(cacheKey);
+    if (cached) return cached;
 
     const { tenantId } = actor;
     const now = new Date();
@@ -67,22 +67,62 @@ export class PredictiveService {
       include: {
         delegatedTo: { select: { id: true, name: true } },
       },
+      orderBy: { targetDate: 'asc' },
+      take: 100,
     });
 
     const predictions: TaskRiskPrediction[] = [];
+    const assigneeIds = Array.from(new Set(delegations.map((d) => d.delegatedToId)));
+
+    const [statusCounts, lateCounts] = assigneeIds.length
+      ? await Promise.all([
+          this.prisma.delegationTask.groupBy({
+            by: ['delegatedToId', 'status'],
+            where: {
+              tenantId,
+              delegatedToId: { in: assigneeIds },
+              status: { in: ['PENDING', 'IN_PROGRESS', 'REWORK'] },
+            },
+            _count: { _all: true },
+          }),
+          this.prisma.delegationTask.groupBy({
+            by: ['delegatedToId'],
+            where: {
+              tenantId,
+              delegatedToId: { in: assigneeIds },
+              onTimeStatus: 'LATE',
+            },
+            _count: { _all: true },
+          }),
+        ])
+      : [[], []];
+
+    const workloadByUser = new Map<string, { pending: number; rework: number; late: number }>();
+    const ensureWorkload = (userId: string) => {
+      if (!workloadByUser.has(userId)) {
+        workloadByUser.set(userId, { pending: 0, rework: 0, late: 0 });
+      }
+      return workloadByUser.get(userId)!;
+    };
+
+    for (const row of statusCounts) {
+      const workload = ensureWorkload(row.delegatedToId);
+      if (row.status === 'REWORK') {
+        workload.rework += row._count._all;
+      } else {
+        workload.pending += row._count._all;
+      }
+    }
+
+    for (const row of lateCounts) {
+      ensureWorkload(row.delegatedToId).late = row._count._all;
+    }
 
     for (const d of delegations) {
-      const [pendingCount, reworkCount, lateCount] = await Promise.all([
-        this.prisma.delegationTask.count({
-          where: { tenantId, delegatedToId: d.delegatedToId, status: { in: ['PENDING', 'IN_PROGRESS'] } },
-        }),
-        this.prisma.delegationTask.count({
-          where: { tenantId, delegatedToId: d.delegatedToId, status: 'REWORK' },
-        }),
-        this.prisma.delegationTask.count({
-          where: { tenantId, delegatedToId: d.delegatedToId, onTimeStatus: 'LATE' },
-        }),
-      ]);
+      const workload = workloadByUser.get(d.delegatedToId) ?? { pending: 0, rework: 0, late: 0 };
+      const pendingCount = workload.pending;
+      const reworkCount = workload.rework;
+      const lateCount = workload.late;
 
       const reasons: string[] = [];
       let risk = 0;
@@ -123,7 +163,7 @@ export class PredictiveService {
 
     // Sort by risk descending
     const sorted = predictions.sort((a, b) => b.riskScore - a.riskScore);
-    await this.redis.set(cacheKey, JSON.stringify(sorted), 300); // 5-min cache
+    await this.redis.set(cacheKey, sorted, 300); // 5-min cache
     return sorted;
   }
 
@@ -131,8 +171,8 @@ export class PredictiveService {
 
   async predictWorkload(actor: JwtPayload): Promise<WorkloadPrediction[]> {
     const cacheKey = `predictive:workload:${actor.tenantId}`;
-    const cached = await this.redis.get(cacheKey);
-    if (cached) return JSON.parse(cached);
+    const cached = await this.redis.get<WorkloadPrediction[]>(cacheKey);
+    if (cached) return cached;
 
     const { tenantId } = actor;
     const now = new Date();
@@ -185,7 +225,7 @@ export class PredictiveService {
     );
 
     const sorted = predictions.sort((a, b) => b.pendingCount - a.pendingCount);
-    await this.redis.set(cacheKey, JSON.stringify(sorted), 300);
+    await this.redis.set(cacheKey, sorted, 300);
     return sorted;
   }
 
@@ -193,8 +233,8 @@ export class PredictiveService {
 
   async predictProjectHealth(actor: JwtPayload): Promise<ProjectRiskPrediction[]> {
     const cacheKey = `predictive:projects:${actor.tenantId}`;
-    const cached = await this.redis.get(cacheKey);
-    if (cached) return JSON.parse(cached);
+    const cached = await this.redis.get<ProjectRiskPrediction[]>(cacheKey);
+    if (cached) return cached;
 
     const { tenantId } = actor;
     const now = new Date();
@@ -249,7 +289,7 @@ export class PredictiveService {
     );
 
     const sorted = predictions.sort((a, b) => a.healthScore - b.healthScore);
-    await this.redis.set(cacheKey, JSON.stringify(sorted), 300);
+    await this.redis.set(cacheKey, sorted, 300);
     return sorted;
   }
 }

@@ -14,6 +14,8 @@ export class RedisService {
   }
 
   async get<T = string>(key: string): Promise<T | null> {
+    if (!this.isConnected) return null;
+
     try {
       const value = await this.redis.get(key);
       if (!value) return null;
@@ -29,6 +31,8 @@ export class RedisService {
   }
 
   async set(key: string, value: unknown, ttlSeconds?: number): Promise<void> {
+    if (!this.isConnected) return;
+
     try {
       const serialized = typeof value === 'string' ? value : JSON.stringify(value);
       if (ttlSeconds) {
@@ -43,6 +47,8 @@ export class RedisService {
 
   async del(...keys: string[]): Promise<void> {
     if (keys.length === 0) return;
+    if (!this.isConnected) return;
+
     try {
       await this.redis.del(...keys);
     } catch (err) {
@@ -51,6 +57,8 @@ export class RedisService {
   }
 
   async exists(key: string): Promise<boolean> {
+    if (!this.isConnected) return false;
+
     try {
       const count = await this.redis.exists(key);
       return count > 0;
@@ -61,6 +69,8 @@ export class RedisService {
   }
 
   async expire(key: string, ttlSeconds: number): Promise<void> {
+    if (!this.isConnected) return;
+
     try {
       await this.redis.expire(key, ttlSeconds);
     } catch (err) {
@@ -69,6 +79,8 @@ export class RedisService {
   }
 
   async ttl(key: string): Promise<number> {
+    if (!this.isConnected) return -1;
+
     try {
       return await this.redis.ttl(key);
     } catch (err) {
@@ -80,6 +92,8 @@ export class RedisService {
   // ── Pattern Delete (for cache invalidation) ─────────────────
 
   async delByPattern(pattern: string): Promise<number> {
+    if (!this.isConnected) return 0;
+
     try {
       const keys = await this.redis.keys(pattern);
       if (keys.length === 0) return 0;
@@ -95,6 +109,8 @@ export class RedisService {
   // ── Increment (for counters) ─────────────────────────────────
 
   async incr(key: string): Promise<number> {
+    if (!this.isConnected) return 0;
+
     try {
       return await this.redis.incr(key);
     } catch (err) {
@@ -104,6 +120,8 @@ export class RedisService {
   }
 
   async incrBy(key: string, amount: number): Promise<number> {
+    if (!this.isConnected) return 0;
+
     try {
       return await this.redis.incrby(key, amount);
     } catch (err) {
@@ -115,6 +133,8 @@ export class RedisService {
   // ── Hash Operations ──────────────────────────────────────────
 
   async hset(key: string, field: string, value: unknown): Promise<void> {
+    if (!this.isConnected) return;
+
     try {
       await this.redis.hset(key, field, JSON.stringify(value));
     } catch (err) {
@@ -123,6 +143,8 @@ export class RedisService {
   }
 
   async hget<T = unknown>(key: string, field: string): Promise<T | null> {
+    if (!this.isConnected) return null;
+
     try {
       const value = await this.redis.hget(key, field);
       if (!value) return null;
@@ -134,6 +156,8 @@ export class RedisService {
   }
 
   async hgetall<T = Record<string, unknown>>(key: string): Promise<T | null> {
+    if (!this.isConnected) return null;
+
     try {
       const data = await this.redis.hgetall(key);
       if (!data || Object.keys(data).length === 0) return null;
@@ -149,6 +173,8 @@ export class RedisService {
   // ── Set Operations (for token blacklisting) ──────────────────
 
   async sadd(key: string, ...members: string[]): Promise<void> {
+    if (!this.isConnected) return;
+
     try {
       await this.redis.sadd(key, ...members);
     } catch (err) {
@@ -157,6 +183,8 @@ export class RedisService {
   }
 
   async sismember(key: string, member: string): Promise<boolean> {
+    if (!this.isConnected) return false;
+
     try {
       return (await this.redis.sismember(key, member)) === 1;
     } catch (err) {
@@ -168,6 +196,8 @@ export class RedisService {
   // ── Health Check ─────────────────────────────────────────────
 
   async ping(): Promise<boolean> {
+    if (!this.isConnected) return false;
+
     try {
       const result = await this.redis.ping();
       return result === 'PONG';

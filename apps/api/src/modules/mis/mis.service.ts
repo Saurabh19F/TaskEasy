@@ -63,9 +63,30 @@ export class MisService {
       to = query.dateTo ? new Date(query.dateTo) : new Date();
     }
 
-    const cards: UserMisCard[] = await Promise.all(
-      users.map((user) => this.buildUserCard(user, tenantId, from, to, query.projectId)),
-    );
+    const userIds = users.map((u) => u.id);
+    const [calculatedCards, snapshots] = await Promise.all([
+      this.misCalculator.calculateForUsers(users, tenantId, from, to, query.projectId),
+      userIds.length
+        ? this.prisma.misSnapshot.findMany({
+            where: { tenantId, userId: { in: userIds } },
+            orderBy: { periodStart: 'desc' },
+            select: { userId: true, targetScore: true },
+          })
+        : [],
+    ]);
+
+    const latestTargetByUser = new Map<string, number>();
+    for (const snapshot of snapshots) {
+      if (!latestTargetByUser.has(snapshot.userId)) {
+        latestTargetByUser.set(snapshot.userId, snapshot.targetScore);
+      }
+    }
+
+    const cards: UserMisCard[] = calculatedCards.map((card) => ({
+      ...card,
+      grade: card.grade as UserMisCard['grade'],
+      lastWeekTarget: latestTargetByUser.get(card.userId),
+    }));
 
     const totalEmployees = cards.length;
     const avgNotDone = cards.reduce((s, c) => {
@@ -80,7 +101,6 @@ export class MisService {
     // Count pending checklist tasks across all visible users in the period.
     // Previously hardcoded to 0 -- the "Avg. Checklist Pending" summary card
     // always showed 0 regardless of actual data.
-    const userIds = users.map((u) => u.id);
     const totalChecklistPending = userIds.length
       ? await this.prisma.checklistTask.count({
           where: {

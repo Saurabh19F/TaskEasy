@@ -328,19 +328,22 @@ export class DashboardService {
       myDel, myWr, myCl, myFms,
     ] = await Promise.all([
       // Project-wise: delegation tasks with projectId
-      this.prisma.delegationTask.findMany({
+      this.prisma.delegationTask.groupBy({
+        by: ['projectId', 'status'],
         where: { tenantId, projectId: { not: null }, ...(idFilter ? { delegatedToId: idFilter } : {}) },
-        select: { projectId: true, status: true },
+        _count: { _all: true },
       }),
       // Project-wise: work requests with projectId
-      this.prisma.workRequest.findMany({
+      this.prisma.workRequest.groupBy({
+        by: ['projectId', 'status'],
         where: { tenantId, projectId: { not: null }, ...(idFilter ? { requestedForId: idFilter } : {}) },
-        select: { projectId: true, status: true },
+        _count: { _all: true },
       }),
       // Project-wise: checklist tasks with projectId
-      this.prisma.checklistTask.findMany({
+      this.prisma.checklistTask.groupBy({
+        by: ['projectId', 'status'],
         where: { tenantId, projectId: { not: null }, ...(idFilter ? { assignedToId: idFilter } : {}) },
-        select: { projectId: true, status: true },
+        _count: { _all: true },
       }),
       // All tenant projects for name lookup
       this.prisma.project.findMany({
@@ -353,9 +356,10 @@ export class DashboardService {
         select: { id: true, name: true },
       }),
       // FMS tasks grouped by workflow
-      this.prisma.fmsTask.findMany({
+      this.prisma.fmsTask.groupBy({
+        by: ['workflowId', 'status'],
         where: { tenantId, ...(idFilter ? { personId: idFilter } : {}) },
-        select: { workflowId: true, status: true },
+        _count: { _all: true },
       }),
       // Personal priority: user's own pending delegation tasks
       this.prisma.delegationTask.findMany({
@@ -399,17 +403,17 @@ export class DashboardService {
     for (const t of delTasks) {
       if (!t.projectId) continue;
       const e = ensureProject(t.projectId);
-      if (t.status === 'COMPLETED') e.delDone++; else e.delPending++;
+      if (t.status === 'COMPLETED') e.delDone += t._count._all; else e.delPending += t._count._all;
     }
     for (const t of wrTasks) {
       if (!t.projectId) continue;
       const e = ensureProject(t.projectId);
-      if (t.status === 'COMPLETED') e.wrDone++; else e.wrPending++;
+      if (t.status === 'COMPLETED') e.wrDone += t._count._all; else e.wrPending += t._count._all;
     }
     for (const t of clTasks) {
       if (!t.projectId) continue;
       const e = ensureProject(t.projectId);
-      if (t.status === 'COMPLETED') e.clDone++; else e.clPending++;
+      if (t.status === 'COMPLETED') e.clDone += t._count._all; else e.clPending += t._count._all;
     }
 
     const projectWiseStatus: ProjectWiseStatusEntry[] = Array.from(pMap.entries())
@@ -435,8 +439,8 @@ export class DashboardService {
     for (const t of fmsTasks) {
       if (!fMap.has(t.workflowId)) fMap.set(t.workflowId, { pending: 0, done: 0, total: 0 });
       const e = fMap.get(t.workflowId)!;
-      e.total++;
-      if (t.status === 'COMPLETED') e.done++; else e.pending++;
+      e.total += t._count._all;
+      if (t.status === 'COMPLETED') e.done += t._count._all; else e.pending += t._count._all;
     }
 
     const fmsWiseStatus: FmsWiseStatusEntry[] = Array.from(fMap.entries())

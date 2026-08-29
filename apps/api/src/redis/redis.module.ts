@@ -14,10 +14,12 @@ import { RedisService } from './redis.service';
         const redisUrl = config.get<string>('REDIS_URL');
 
         const commonOpts = {
-          maxRetriesPerRequest: null,
+          maxRetriesPerRequest: 1,
+          connectTimeout: 1000,
+          commandTimeout: 1000,
           retryStrategy: (times: number) => Math.min(times * 200, 5000),
           lazyConnect: true,
-          enableOfflineQueue: true,
+          enableOfflineQueue: false,
           reconnectOnError: () => true,
         };
 
